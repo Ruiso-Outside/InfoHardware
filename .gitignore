@@ -1,0 +1,18 @@
+# Build
+bin/
+obj/
+out/
+dist/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Instalação local do app (criada pelo instalador nesta pasta)
+/InfoHardware/
+
+# Configuração local do Claude Code
+.claude/

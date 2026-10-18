@@ -1,0 +1,93 @@
+<UserControl x:Class="InfoHardware.Views.OverlayPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             FontFamily="{StaticResource NumFont}">
+    <UserControl.Resources>
+        <Style x:Key="Lbl" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Width" Value="46"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Val" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="MinWidth" Value="58"/>
+            <Setter Property="Margin" Value="0,0,10,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+        <Style x:Key="Unit" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#B9A8E6"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Border CornerRadius="10" BorderThickness="1" Padding="12,8">
+        <Border.Background>
+            <SolidColorBrush Color="#0A0514" Opacity="{Binding Settings.OverlayOpacity}"/>
+        </Border.Background>
+        <Border.BorderBrush>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                <GradientStop Color="#B9A855F7" Offset="0"/>
+                <GradientStop Color="#B9FF3CAC" Offset="1"/>
+            </LinearGradientBrush>
+        </Border.BorderBrush>
+        <Border.LayoutTransform>
+            <ScaleTransform ScaleX="{Binding Settings.OverlayScale}" ScaleY="{Binding Settings.OverlayScale}"/>
+        </Border.LayoutTransform>
+        <StackPanel>
+            <StackPanel.Effect>
+                <DropShadowEffect Color="Black" BlurRadius="4" ShadowDepth="1" Opacity="0.9"/>
+            </StackPanel.Effect>
+
+            <!-- FPS -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowFps, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="FPS" Style="{StaticResource Lbl}" Foreground="#22D3EE"/>
+                <TextBlock Text="{Binding Live.Fps.Text}" Style="{StaticResource Val}" FontSize="20" Foreground="#7DF3FF"/>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Visibility="{Binding Settings.OvShowFrameTime, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.FrameTime.Text, Mode=OneWay}"/><Run Text=" ms" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                    <TextBlock Style="{StaticResource Val}"><Run Text="1% " FontSize="11" Foreground="#B9A8E6"/><Run Text="{Binding Live.Fps1Low.Text, Mode=OneWay}"/></TextBlock>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- CPU -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowCpu, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="CPU" Style="{StaticResource Lbl}" Foreground="#C77DFF"/>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.CpuLoad.Text, Mode=OneWay}"/><Run Text=" %" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.CpuTemp.Text, Mode=OneWay}"/><Run Text=" °C" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}" Text="{Binding Live.CpuClock.Text}" Visibility="{Binding Settings.OvShowClocks, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock Style="{StaticResource Val}" Visibility="{Binding Settings.OvShowPower, Converter={StaticResource BoolToVis}}"><Run Text="{Binding Live.CpuPower.Text, Mode=OneWay}"/><Run Text=" W" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+            </StackPanel>
+
+            <!-- GPU -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowGpu, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="GPU" Style="{StaticResource Lbl}" Foreground="#FF3CAC"/>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.GpuLoad.Text, Mode=OneWay}"/><Run Text=" %" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.GpuTemp.Text, Mode=OneWay}"/><Run Text=" °C" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}" Text="{Binding Live.GpuClock.Text}" Visibility="{Binding Settings.OvShowClocks, Converter={StaticResource BoolToVis}}"/>
+                <TextBlock Style="{StaticResource Val}" Visibility="{Binding Settings.OvShowPower, Converter={StaticResource BoolToVis}}"><Run Text="{Binding Live.GpuPower.Text, Mode=OneWay}"/><Run Text=" W" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+            </StackPanel>
+
+            <!-- VRAM -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowVram, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="VRAM" Style="{StaticResource Lbl}" Foreground="#FFB020"/>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.VramUsed.Text, Mode=OneWay}"/><Run Text=" GB" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.VramLoad.Text, Mode=OneWay}"/><Run Text=" %" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+            </StackPanel>
+
+            <!-- RAM -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowRam, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="RAM" Style="{StaticResource Lbl}" Foreground="#39FF88"/>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.RamUsed.Text, Mode=OneWay}"/><Run Text=" GB" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+                <TextBlock Style="{StaticResource Val}"><Run Text="{Binding Live.RamLoad.Text, Mode=OneWay}"/><Run Text=" %" FontSize="11" Foreground="#B9A8E6"/></TextBlock>
+            </StackPanel>
+
+            <!-- Relógio -->
+            <StackPanel Orientation="Horizontal" Margin="0,1" Visibility="{Binding Settings.OvShowClock, Converter={StaticResource BoolToVis}}">
+                <TextBlock Text="HORA" Style="{StaticResource Lbl}" Foreground="#5B8CFF"/>
+                <TextBlock Style="{StaticResource Val}" Text="{Binding Live.ClockText}"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

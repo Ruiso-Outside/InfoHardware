@@ -1,0 +1,100 @@
+<Window x:Class="InfoHardware.Setup.SetupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Instalar InfoHardware" Width="620" Height="500" ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen" Background="{StaticResource Bg0Brush}"
+        FontFamily="{StaticResource UiFont}" Foreground="{StaticResource TextBrush}"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="40" ResizeBorderThickness="0" GlassFrameThickness="0" CornerRadius="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Border BorderBrush="#2E1A52" BorderThickness="1">
+        <Grid>
+            <Ellipse Width="560" Height="420" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-220,-260,0,0" Opacity="0.6" IsHitTestVisible="False">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#3A1470" Offset="0"/>
+                        <GradientStop Color="#003A1470" Offset="1"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+            <Ellipse Width="520" Height="400" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-240,-240" Opacity="0.45" IsHitTestVisible="False">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#5A0F4A" Offset="0"/>
+                        <GradientStop Color="#005A0F4A" Offset="1"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Click="Close_Click" WindowChrome.IsHitTestVisibleInChrome="True" x:Name="CloseBtn"/>
+
+            <StackPanel Margin="40,44,40,0" VerticalAlignment="Top">
+                <StackPanel Orientation="Horizontal">
+                    <Image Source="/Assets/logo.png" Width="64" Height="64">
+                        <Image.Effect>
+                            <DropShadowEffect Color="#A855F7" BlurRadius="30" ShadowDepth="0" Opacity="1"/>
+                        </Image.Effect>
+                    </Image>
+                    <StackPanel Margin="18,0,0,0" VerticalAlignment="Center">
+                        <TextBlock FontFamily="{StaticResource NumFont}" FontSize="30" FontWeight="Bold">
+                            <Run Text="INFO" Foreground="White"/><Run Text="HARDWARE" Foreground="{StaticResource PinkBrush}"/>
+                        </TextBlock>
+                        <TextBlock x:Name="VersionText" Style="{StaticResource Dim}" Text="Versão 1.0.0"/>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Margin="0,18,0,0" Style="{StaticResource Dim}" TextWrapping="Wrap" TextTrimming="None"
+                           Text="Veja todas as informações do seu hardware e acompanhe o desempenho em tempo real enquanto joga, com overlay de FPS, gráficos e gravação de sessões."/>
+            </StackPanel>
+
+            <!-- Etapa 1: opções -->
+            <StackPanel x:Name="OptionsPanel" Margin="40,0,40,32" VerticalAlignment="Bottom">
+                <TextBlock Text="PASTA DE INSTALAÇÃO" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Procurar…" Margin="10,0,0,0" Click="Browse_Click"/>
+                    <TextBox x:Name="DirBox" Height="38" Padding="10,0" VerticalContentAlignment="Center" FontSize="13"
+                             Background="#130A24" Foreground="{StaticResource TextBrush}" BorderBrush="#33205A" CaretBrush="{StaticResource NeonPurpleBrush}"/>
+                </DockPanel>
+                <StackPanel Margin="0,16,0,0">
+                    <CheckBox x:Name="DesktopCheck" Style="{StaticResource Toggle}" Content="Criar atalho na Área de Trabalho" IsChecked="True"/>
+                    <CheckBox x:Name="StartCheck" Style="{StaticResource Toggle}" Content="Criar atalho no Menu Iniciar" IsChecked="True"/>
+                    <CheckBox x:Name="RunCheck" Style="{StaticResource Toggle}" Content="Abrir o InfoHardware ao concluir" IsChecked="True"/>
+                </StackPanel>
+                <DockPanel Margin="0,20,0,0">
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                        <Button Style="{StaticResource GhostButton}" Content="Cancelar" Click="Close_Click" Margin="0,0,10,0" MinWidth="100"/>
+                        <Button x:Name="InstallBtn" Style="{StaticResource NeonButton}" Content="Instalar" Click="Install_Click" MinWidth="140"/>
+                    </StackPanel>
+                    <TextBlock x:Name="ExistingText" Style="{StaticResource Mute}" VerticalAlignment="Center" TextWrapping="Wrap" TextTrimming="None"/>
+                </DockPanel>
+            </StackPanel>
+
+            <!-- Etapa 2: progresso -->
+            <StackPanel x:Name="ProgressPanel" Margin="40,0,40,60" VerticalAlignment="Bottom" Visibility="Collapsed">
+                <TextBlock Text="Instalando…" FontSize="18" FontWeight="SemiBold"/>
+                <TextBlock x:Name="StatusText" Style="{StaticResource Dim}" Margin="0,6,0,14"/>
+                <ProgressBar x:Name="Bar" Style="{StaticResource NeonBar}" Height="8" Maximum="1"/>
+            </StackPanel>
+
+            <!-- Etapa 3: concluído -->
+            <StackPanel x:Name="DonePanel" Margin="40,0,40,32" VerticalAlignment="Bottom" Visibility="Collapsed">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="40" Height="40" CornerRadius="20" Background="{StaticResource NeonGradient}" Effect="{StaticResource GlowPurple}">
+                        <TextBlock Text="&#xE73E;" Style="{StaticResource Icon}" Foreground="White" HorizontalAlignment="Center" FontSize="18"/>
+                    </Border>
+                    <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="Instalação concluída!" FontSize="18" FontWeight="SemiBold"/>
+                        <TextBlock x:Name="DoneText" Style="{StaticResource Dim}"/>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock Margin="0,16,0,0" Style="{StaticResource Mute}" TextWrapping="Wrap" TextTrimming="None"
+                           Text="O InfoHardware pede permissão de administrador ao abrir — ela é necessária para ler os sensores e medir o FPS dos jogos."/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
+                    <Button Style="{StaticResource NeonButton}" Content="Concluir" Click="Finish_Click" MinWidth="140"/>
+                </StackPanel>
+            </StackPanel>
+        </Grid>
+    </Border>
+</Window>

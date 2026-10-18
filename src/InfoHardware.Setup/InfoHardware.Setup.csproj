@@ -1,0 +1,30 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Instalador em .NET Framework 4.8 (já vem no Windows 10/11), então roda em qualquer PC sem pré-requisitos.
+    O pacote do app é anexado ao final do .exe pelo build.ps1; a mesma base (sem o pacote) vira o Uninstall.exe.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>InfoHardware.Setup</AssemblyName>
+    <RootNamespace>InfoHardware.Setup</RootNamespace>
+    <ApplicationIcon>..\InfoHardware\Assets\app.ico</ApplicationIcon>
+    <ApplicationManifest>setup.manifest</ApplicationManifest>
+    <Version>1.0.0</Version>
+    <Product>InfoHardware Setup</Product>
+    <Company>InfoHardware</Company>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="..\InfoHardware\Assets\logo.png" Link="Assets\logo.png" />
+    <Page Include="..\InfoHardware\Themes\Theme.xaml" Link="Themes\Theme.xaml" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+</Project>

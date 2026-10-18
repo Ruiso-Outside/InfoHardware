@@ -1,0 +1,16 @@
+﻿<Application x:Class="InfoHardware.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:core="clr-namespace:InfoHardware.Core"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Theme.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+            <core:InverseBoolToVisConverter x:Key="InverseBoolToVis"/>
+            <core:EqualsConverter x:Key="Equals"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

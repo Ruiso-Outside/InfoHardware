@@ -1,0 +1,110 @@
+<UserControl x:Class="InfoHardware.Views.PerformanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:c="clr-namespace:InfoHardware.Controls">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,0,24,24">
+        <StackPanel>
+            <StackPanel Margin="8,4,8,14">
+                <TextBlock Text="Desempenho em tempo real" Style="{StaticResource PageTitle}" FontSize="26"/>
+                <TextBlock Text="Acompanhe o hardware enquanto joga ou usa outros programas. Os gráficos mostram os últimos 2 minutos." Style="{StaticResource Dim}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <!-- Gravação de sessão -->
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource GhostButton}" Content="Abrir pasta das sessões" Click="OpenFolder_Click" Margin="0,0,10,0"/>
+                            <Button Style="{StaticResource NeonButton}" Click="Toggle_Click" MinWidth="170"
+                                    Visibility="{Binding Recorder.IsRecording, Converter={StaticResource InverseBoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Ellipse Width="10" Height="10" Fill="White" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Iniciar gravação"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource GhostButton}" Click="Toggle_Click" MinWidth="170" BorderBrush="{StaticResource RedBrush}"
+                                    Visibility="{Binding Recorder.IsRecording, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <Rectangle Width="10" Height="10" Fill="{StaticResource RedBrush}" Margin="0,0,10,0"/>
+                                    <TextBlock Text="Parar gravação"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <Border Width="46" Height="46" CornerRadius="23" Margin="0,0,16,0" Background="#24102E" BorderBrush="{StaticResource PinkBrush}" BorderThickness="1">
+                            <TextBlock Text="&#xE7C8;" Style="{StaticResource Icon}" FontSize="18" HorizontalAlignment="Center" Foreground="{StaticResource PinkBrush}"/>
+                        </Border>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="15" FontWeight="SemiBold">
+                                <Run Text="Gravação de sessão"/>
+                                <Run Text="{Binding Recorder.Elapsed, Mode=OneWay}" FontFamily="{StaticResource NumFont}" Foreground="{StaticResource RedBrush}"/>
+                            </TextBlock>
+                            <TextBlock Style="{StaticResource Dim}" Margin="0,3,12,0" TextWrapping="Wrap" TextTrimming="None"
+                                       Text="Grava todas as métricas a cada leitura em CSV (abre no Excel) e mostra o resumo ao final. Atalho global: Ctrl + Shift + R"/>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <!-- Resumo da última sessão -->
+                    <StackPanel Margin="0,18,0,0" Visibility="{Binding Recorder.HasSummary, Converter={StaticResource BoolToVis}}">
+                        <DockPanel Margin="0,0,0,10">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="Mostrar arquivo" Click="ShowFile_Click" Padding="12,6"/>
+                            <TextBlock FontSize="13.5" FontWeight="SemiBold" Foreground="{StaticResource NeonPurpleBrush}" VerticalAlignment="Center">
+                                <Run Text="Resumo da última sessão · duração"/>
+                                <Run Text="{Binding Recorder.LastDuration, Mode=OneWay}"/>
+                            </TextBlock>
+                        </DockPanel>
+                        <Border CornerRadius="10" Background="#0D0719" BorderBrush="#22143D" BorderThickness="1" Padding="0,4">
+                            <ItemsControl ItemsSource="{Binding Recorder.Summary}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate><UniformGrid Columns="3"/></ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid Margin="14,6">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding Name}" Style="{StaticResource Dim}"/>
+                                            <TextBlock Grid.Column="1" FontFamily="{StaticResource NumFont}" FontSize="12.5">
+                                                <Run Text="{Binding Min, Mode=OneWay}" Foreground="{StaticResource CyanBrush}"/>
+                                                <Run Text=" / " Foreground="{StaticResource TextMuteBrush}"/>
+                                                <Run Text="{Binding Avg, Mode=OneWay}" Foreground="White"/>
+                                                <Run Text=" / " Foreground="{StaticResource TextMuteBrush}"/>
+                                                <Run Text="{Binding Max, Mode=OneWay}" Foreground="{StaticResource PinkBrush}"/>
+                                            </TextBlock>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Border>
+                        <TextBlock Text="mín / média / máx" Style="{StaticResource Mute}" Margin="4,6,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="290"/>
+                    <RowDefinition Height="290"/>
+                    <RowDefinition Height="290"/>
+                    <RowDefinition Height="290"/>
+                    <RowDefinition Height="290"/>
+                </Grid.RowDefinitions>
+                <c:ChartCard Grid.Row="0" Grid.Column="0" Title="FPS" Primary="{Binding Live.Fps}" Secondary="{Binding Live.Fps1Low}"/>
+                <c:ChartCard Grid.Row="0" Grid.Column="1" Title="FRAMETIME" Primary="{Binding Live.FrameTime}"/>
+                <c:ChartCard Grid.Row="1" Grid.Column="0" Title="PROCESSADOR" Primary="{Binding Live.CpuLoad}" Secondary="{Binding Live.CpuTemp}" Maximum="100"/>
+                <c:ChartCard Grid.Row="1" Grid.Column="1" Title="PLACA DE VÍDEO" Primary="{Binding Live.GpuLoad}" Secondary="{Binding Live.GpuTemp}" Maximum="100"/>
+                <c:ChartCard Grid.Row="2" Grid.Column="0" Title="CLOCKS" Primary="{Binding Live.CpuClock}" Secondary="{Binding Live.GpuClock}"/>
+                <c:ChartCard Grid.Row="2" Grid.Column="1" Title="CONSUMO DE ENERGIA" Primary="{Binding Live.CpuPower}" Secondary="{Binding Live.GpuPower}"/>
+                <c:ChartCard Grid.Row="3" Grid.Column="0" Title="MEMÓRIA" Primary="{Binding Live.RamLoad}" Secondary="{Binding Live.VramLoad}" Maximum="100"/>
+                <c:ChartCard Grid.Row="3" Grid.Column="1" Title="DISCO" Primary="{Binding Live.DiskRead}" Secondary="{Binding Live.DiskWrite}"/>
+                <c:ChartCard Grid.Row="4" Grid.Column="0" Title="REDE" Primary="{Binding Live.NetDown}" Secondary="{Binding Live.NetUp}"/>
+                <c:ChartCard Grid.Row="4" Grid.Column="1" Title="GPU · HOTSPOT E NÚCLEO" Primary="{Binding Live.GpuHotspot}" Secondary="{Binding Live.GpuTemp}"/>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

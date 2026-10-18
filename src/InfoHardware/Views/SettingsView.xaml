@@ -1,0 +1,113 @@
+<UserControl x:Class="InfoHardware.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <Style x:Key="StatusRow" TargetType="Border">
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Background" Value="#0D0719"/>
+            <Setter Property="BorderBrush" Value="#22143D"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </UserControl.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,0,24,24">
+        <StackPanel MaxWidth="980" HorizontalAlignment="Left">
+            <StackPanel Margin="8,4,8,14">
+                <TextBlock Text="Configurações" Style="{StaticResource PageTitle}" FontSize="26"/>
+                <TextBlock Text="Ajuste a atualização dos sensores e verifique os componentes do monitoramento." Style="{StaticResource Dim}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="INTERVALO DE ATUALIZAÇÃO" Style="{StaticResource CardTitle}" Margin="0,0,0,4"/>
+                    <TextBlock Text="Intervalos menores deixam os gráficos mais suaves, mas usam um pouco mais de CPU." Style="{StaticResource Mute}" Margin="0,0,0,12"/>
+                    <WrapPanel>
+                        <RadioButton Style="{StaticResource Segment}" Content="0,5 s" IsChecked="{Binding Settings.UpdateIntervalMs, Converter={StaticResource Equals}, ConverterParameter=500}"/>
+                        <RadioButton Style="{StaticResource Segment}" Content="1 s" IsChecked="{Binding Settings.UpdateIntervalMs, Converter={StaticResource Equals}, ConverterParameter=1000}"/>
+                        <RadioButton Style="{StaticResource Segment}" Content="2 s" IsChecked="{Binding Settings.UpdateIntervalMs, Converter={StaticResource Equals}, ConverterParameter=2000}"/>
+                        <RadioButton Style="{StaticResource Segment}" Content="3 s" IsChecked="{Binding Settings.UpdateIntervalMs, Converter={StaticResource Equals}, ConverterParameter=3000}"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="STATUS DO MONITORAMENTO" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+
+                    <Border Style="{StaticResource StatusRow}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding AdminText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Foreground="{Binding AdminBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <StackPanel>
+                                <TextBlock Text="Permissão de administrador" FontWeight="SemiBold"/>
+                                <TextBlock Text="Necessária para ler sensores de baixo nível e medir FPS." Style="{StaticResource Mute}"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource StatusRow}">
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <TextBlock VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,12,0" Text="{Binding PawnText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                           Foreground="{Binding PawnBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                <Button Style="{StaticResource GhostButton}" Content="Verificar" Padding="12,6" Margin="0,0,8,0" Click="CheckPawn_Click"/>
+                                <Button Style="{StaticResource NeonButton}" Content="Instalar" Padding="12,6" Click="InstallPawn_Click"/>
+                            </StackPanel>
+                            <StackPanel>
+                                <TextBlock Text="Driver PawnIO" FontWeight="SemiBold"/>
+                                <TextBlock Text="Temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe." Style="{StaticResource Mute}"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource StatusRow}">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding FpsText, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                       Foreground="{Binding FpsBrush, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                            <StackPanel>
+                                <TextBlock Text="Captura de FPS" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding FpsStatus}" Style="{StaticResource Mute}" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource StatusRow}" Margin="0">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontWeight="SemiBold" Text="{Binding SensorCount}" Foreground="{StaticResource CyanBrush}"/>
+                            <StackPanel>
+                                <TextBlock Text="Sensores detectados" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding HardwareStatus}" Style="{StaticResource Mute}"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <TextBlock Text="PASTAS" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                    <WrapPanel>
+                        <Button Style="{StaticResource GhostButton}" Content="Sessões gravadas" Click="Sessions_Click" Margin="0,0,10,0"/>
+                        <Button Style="{StaticResource GhostButton}" Content="Configurações e logs" Click="Config_Click" Margin="0,0,10,0"/>
+                        <Button Style="{StaticResource GhostButton}" Content="Pasta de instalação" Click="Install_Click"/>
+                    </WrapPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource Card}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Image Source="/Assets/logo.png" Width="48" Height="48" Margin="0,0,14,0" Effect="{StaticResource GlowPurple}"/>
+                        <StackPanel VerticalAlignment="Center">
+                            <TextBlock FontSize="16" FontWeight="SemiBold"><Run Text="InfoHardware "/><Run Text="{Binding Version, Mode=OneWay}" Foreground="{StaticResource NeonPurpleBrush}"/></TextBlock>
+                            <TextBlock Text="Informações e monitoramento de hardware em tempo real." Style="{StaticResource Dim}"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <TextBlock Style="{StaticResource Mute}" TextWrapping="Wrap" Margin="0,14,0,0"
+                               Text="Usa LibreHardwareMonitorLib (MPL-2.0) para os sensores e Microsoft TraceEvent (MIT) para a captura de FPS via ETW."/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

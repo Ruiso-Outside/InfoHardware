@@ -1,0 +1,105 @@
+<UserControl x:Class="InfoHardware.Views.OverlaySettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:v="clr-namespace:InfoHardware.Views">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24,0,24,24">
+        <StackPanel>
+            <StackPanel Margin="8,4,8,14">
+                <TextBlock Text="Overlay de jogo" Style="{StaticResource PageTitle}" FontSize="26"/>
+                <TextBlock Text="Mostra FPS, CPU, GPU e memória por cima do jogo, sem atrapalhar o mouse. Atalho global: Ctrl + Shift + O" Style="{StaticResource Dim}" Margin="0,4,0,0"/>
+            </StackPanel>
+
+            <Border Margin="8,0,8,8" Padding="16,12" CornerRadius="12" Background="#1F0F22" BorderBrush="#7A2A5A" BorderThickness="1"
+                    Visibility="{Binding HasExclusiveWarning, Converter={StaticResource BoolToVis}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource GhostButton}" Content="OK" Padding="14,6" Click="Dismiss_Click"/>
+                    <TextBlock Text="&#xE7BA;" Style="{StaticResource Icon}" Foreground="{StaticResource OrangeBrush}" Margin="0,0,12,0"/>
+                    <TextBlock Text="{Binding ExclusiveFullscreenWarning}" TextWrapping="Wrap" VerticalAlignment="Center"
+                               Foreground="{StaticResource TextDimBrush}" FontSize="12.5" Margin="0,0,12,0"/>
+                </DockPanel>
+            </Border>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="420"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel>
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <CheckBox Style="{StaticResource Toggle}" IsChecked="{Binding Settings.OverlayEnabled}">
+                                <StackPanel>
+                                    <TextBlock Text="Ativar overlay" FontSize="15" FontWeight="SemiBold"/>
+                                    <TextBlock Text="Ctrl + Shift + O liga/desliga em qualquer lugar" Style="{StaticResource Mute}" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </CheckBox>
+
+                            <TextBlock Text="POSIÇÃO" Style="{StaticResource CardTitle}" Margin="0,22,0,10"/>
+                            <WrapPanel>
+                                <RadioButton Style="{StaticResource Segment}" Content="↖ Sup. esquerdo" IsChecked="{Binding Settings.OverlayPosition, Converter={StaticResource Equals}, ConverterParameter=TopLeft}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="↑ Sup. centro" IsChecked="{Binding Settings.OverlayPosition, Converter={StaticResource Equals}, ConverterParameter=TopCenter}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="↗ Sup. direito" IsChecked="{Binding Settings.OverlayPosition, Converter={StaticResource Equals}, ConverterParameter=TopRight}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="↙ Inf. esquerdo" IsChecked="{Binding Settings.OverlayPosition, Converter={StaticResource Equals}, ConverterParameter=BottomLeft}"/>
+                                <RadioButton Style="{StaticResource Segment}" Content="↘ Inf. direito" IsChecked="{Binding Settings.OverlayPosition, Converter={StaticResource Equals}, ConverterParameter=BottomRight}"/>
+                            </WrapPanel>
+
+                            <DockPanel Margin="0,20,0,6">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Dim}" Text="{Binding Settings.OverlayOpacity, StringFormat={}{0:P0}}"/>
+                                <TextBlock Text="OPACIDADE DO FUNDO" Style="{StaticResource CardTitle}"/>
+                            </DockPanel>
+                            <Slider Minimum="0.2" Maximum="1" Value="{Binding Settings.OverlayOpacity}" SmallChange="0.05" LargeChange="0.1"/>
+
+                            <DockPanel Margin="0,16,0,6">
+                                <TextBlock DockPanel.Dock="Right" Style="{StaticResource Dim}" Text="{Binding Settings.OverlayScale, StringFormat={}{0:P0}}"/>
+                                <TextBlock Text="TAMANHO" Style="{StaticResource CardTitle}"/>
+                            </DockPanel>
+                            <Slider Minimum="0.6" Maximum="2" Value="{Binding Settings.OverlayScale}" SmallChange="0.05" LargeChange="0.1"/>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="O QUE MOSTRAR" Style="{StaticResource CardTitle}" Margin="0,0,0,8"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="FPS" IsChecked="{Binding Settings.OvShowFps}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Frametime e 1% low" IsChecked="{Binding Settings.OvShowFrameTime}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Processador (uso e temperatura)" IsChecked="{Binding Settings.OvShowCpu}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Placa de vídeo (uso e temperatura)" IsChecked="{Binding Settings.OvShowGpu}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Memória de vídeo (VRAM)" IsChecked="{Binding Settings.OvShowVram}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Memória RAM" IsChecked="{Binding Settings.OvShowRam}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Consumo de energia (W)" IsChecked="{Binding Settings.OvShowPower}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Clocks de CPU e GPU" IsChecked="{Binding Settings.OvShowClocks}"/>
+                            <CheckBox Style="{StaticResource Toggle}" Content="Relógio" IsChecked="{Binding Settings.OvShowClock}"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Pré-visualização -->
+                <Border Grid.Column="1" Style="{StaticResource Card}" VerticalAlignment="Top">
+                    <StackPanel>
+                        <TextBlock Text="PRÉ-VISUALIZAÇÃO AO VIVO" Style="{StaticResource CardTitle}" Margin="0,0,0,12"/>
+                        <Border CornerRadius="12" Height="380" ClipToBounds="True" BorderBrush="#2A1A4A" BorderThickness="1">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                    <GradientStop Color="#1B2B4A" Offset="0"/>
+                                    <GradientStop Color="#3A1E52" Offset="0.5"/>
+                                    <GradientStop Color="#5A2238" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid>
+                                <Path Data="M0,300 L120,190 L210,250 L330,140 L470,260 L600,170 L760,280 L900,200 L900,400 L0,400 Z" Fill="#22000000" Stretch="Fill" VerticalAlignment="Bottom" Height="200"/>
+                                <Path Data="M0,340 L150,260 L260,320 L420,230 L560,330 L700,250 L900,330 L900,400 L0,400 Z" Fill="#44000000" Stretch="Fill" VerticalAlignment="Bottom" Height="140"/>
+                                <TextBlock Text="SEU JOGO AQUI" FontFamily="{StaticResource NumFont}" FontSize="28" Foreground="#30FFFFFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                <v:OverlayPanel x:Name="Preview" Margin="12"/>
+                            </Grid>
+                        </Border>
+                        <Border Margin="0,14,0,0" Padding="14,10" CornerRadius="10" Background="#130A24" BorderBrush="#2A1A4A" BorderThickness="1">
+                            <TextBlock TextWrapping="Wrap" Style="{StaticResource Dim}" TextTrimming="None"
+                                       Text="Importante: o overlay só aparece com o jogo em &quot;Janela em tela cheia&quot; / &quot;Janela sem bordas&quot;. Em &quot;Tela cheia&quot; (exclusiva) o Windows não permite nenhuma janela por cima. No VALORANT: Configurações › Vídeo › Geral › Modo de exibição › Janela em tela cheia. O FPS é medido em jogos DirectX 9/10/11/12."/>
+                        </Border>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
