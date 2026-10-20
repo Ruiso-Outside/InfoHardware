@@ -50,9 +50,10 @@ exports.activate = (ctx) => {
   let uacDeclined = false; // recusou o UAC nesta sessão: não pergunta de novo sozinho
   let idleTimer = null;
   let starting = null;
+  let toolBusy = 0; // ferramentas da IA usando o motor
 
   const setEngine = (patch) => { engine = { ...engine, ...patch }; ctx.emit("engine", engine); };
-  const needed = () => viewVisible || settings.overlay.enabled || !!rec || bench.running;
+  const needed = () => viewVisible || settings.overlay.enabled || !!rec || bench.running || toolBusy > 0;
 
   // ---------------------------------------------------------------- teste de desempenho (benchmark)
   const BENCH_FILE = path.join(ctx.dataDir, "bench-history.json");
@@ -383,6 +384,48 @@ exports.activate = (ctx) => {
     return true;
   });
   ctx.handle("restart-engine", async () => { await stopEngine(); return ensureEngine(); });
+  // ---------------------------------------------------------------- ferramentas para a IA (Piphin LLM), declaradas no module.json
+  const until = async (ok, ms) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (ok()) return true; return ok(); };
+  const r1 = (v) => (typeof v === "number" && isFinite(v) ? Math.round(v * 10) / 10 : undefined);
+  async function withEngine(fn) {
+    toolBusy++;
+    try { await ensureEngine(); return await fn(); }
+    finally { toolBusy--; scheduleIdleStop(); }
+  }
+  function benchForAi(b) {
+    if (!b) return null;
+    return { when: b.at, cpu: b.cpuName, overall_score: b.overall, rating: b.tier && b.tier.name, stars: b.tier && b.tier.stars,
+      scale: "1000 = PC médio para jogos (Ryzen 5 5600)", single_core: b.single, all_cores: b.multi, memory: b.memory,
+      compared_to_ryzen5_5600: { single_core: r1(b.single / 1000) + "x", all_cores: r1(b.multi / 1000) + "x" },
+      good_for: (b.uses || []).filter((u) => u.ok).map((u) => u.name), not_great_for: (b.uses || []).filter((u) => !u.ok).map((u) => u.name),
+      max_cpu_temp_c: b.telemetry && r1(b.telemetry.maxTemp), clock_drop_under_load: b.telemetry && b.telemetry.throttle != null ? Math.round(b.telemetry.throttle * 100) + "%" : undefined,
+      improvements: (b.tips || []).map((t) => ({ impact: t.impact, problem: t.title, details: t.text, how_to_fix: t.how })),
+      other_cpus_same_scale: (b.cpus || []).map((c) => `${c[0]}: um núcleo ${c[1]}, todos ${c[2]}`) };
+  }
+  ctx.handle("tool:hardware_report", (a = {}) => withEngine(async () => {
+    if (!info) send({ cmd: "info" });
+    await until(() => info && lastSnap, 30000);
+    const hw = (lastSnap && lastSnap.hw) || {};
+    const live = {};
+    for (const [k, v] of Object.entries(hw)) if (typeof v === "number" && isFinite(v)) live[k] = r1(v); else if (typeof v === "string" && v) live[k] = v;
+    const limits = [];
+    if (engine.pawnIoState && engine.pawnIoState !== "ok") limits.push("Sem o driver PawnIO: temperatura e consumo da CPU não aparecem (o usuário pode usar 'Reparar PawnIO' no InfoHardware).");
+    if (!engine.admin) limits.push("Motor sem administrador: alguns sensores podem faltar.");
+    const report = info ? String(info.report || "") : "";
+    const max = a.full ? 30000 : 9000;
+    return { live_sensors: live, units: "temperaturas em °C, clocks em MHz, potência em W, cargas em %, RAM em GB, VRAM em MB, disco em MB/s",
+      sensor_limits: limits, system_report: report.length > max ? report.slice(0, max) + "\n... (relatório cortado; peça full=true para o completo)" : report || "(ainda lendo as informações)",
+      last_benchmark: benchForAi(bench.last) || (bench.history[0] ? { ...bench.history[0], note: "resumo; rode run_benchmark para dicas detalhadas" } : "nenhum teste feito ainda") };
+  }));
+  ctx.handle("tool:run_benchmark", () => withEngine(async () => {
+    await startBench();
+    ctx.host.notify("InfoHardware", "A IA iniciou o teste de desempenho (cerca de 15 segundos)").catch(() => {});
+    const done = await until(() => !bench.running, 120000);
+    if (!done) throw new Error("O teste de desempenho não terminou a tempo");
+    if (!bench.last || Date.now() - Date.parse(bench.last.at) > 120000) throw new Error("O teste de desempenho foi cancelado ou falhou");
+    return { benchmark: benchForAi(bench.last), note: "Feche jogos e programas pesados antes do teste para um resultado justo." };
+  }));
+
   ctx.handle("bench-state", () => benchPublic());
   ctx.handle("bench-start", () => startBench());
   ctx.handle("bench-cancel", () => { send({ cmd: "benchCancel" }); return true; });

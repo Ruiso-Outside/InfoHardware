@@ -7,5 +7,32 @@
   "ui": "web/index.html",
   "icon": "icons/infohardware.png",
   "accent": "#a855f7",
-  "minHub": "1.4.0"
+  "minHub": "1.4.0",
+  "tools": [
+    {
+      "name": "hardware_report",
+      "title": "Ler o hardware",
+      "readOnly": true,
+      "description": "Lê o hardware do PC pelo InfoHardware: processador, placa-mãe, memória RAM (pentes e velocidade), placa de vídeo, discos, Windows, sensores ao vivo (temperatura, uso, clock, consumo) e o último teste de desempenho. Use para analisar o PC, achar gargalos ou responder dúvidas sobre o hardware.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "full": {
+            "type": "boolean",
+            "description": "true = relatório completo (mais longo)"
+          }
+        }
+      }
+    },
+    {
+      "name": "run_benchmark",
+      "title": "Rodar teste de desempenho",
+      "readOnly": true,
+      "description": "Roda o teste de desempenho do InfoHardware (cerca de 15 segundos, usa 100% do processador) e devolve as notas de um núcleo, todos os núcleos e memória (1000 = PC médio para jogos), para o que o PC serve e o que dá para melhorar. Só rode se o usuário pedir um teste ou uma avaliação de desempenho.",
+      "input": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ]
 }
