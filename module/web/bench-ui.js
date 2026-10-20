@@ -24,7 +24,6 @@ function renderBench() {
   }
   const prev = B.history[1];
   const delta = prev ? Math.round((r.overall / prev.overall - 1) * 100) : null;
-  const times = (r.overall / 1000).toLocaleString(PT, { maximumFractionDigits: 1 });
   const bar = (key, label, desc, icon) => {
     const v = r[key], max = Math.max(2500, v * 1.1);
     return `<div class="b-bar"><div class="row" style="justify-content:space-between"><span class="row" style="gap:8px"><i class="i i-${icon}"></i><b>${label}</b></span><b class="num">${fmt(v)}</b></div>
@@ -45,7 +44,8 @@ function renderBench() {
         ${stars(r.tier.stars)}
         <div class="score-tier">${esc(r.tier.name)}</div>
         <p>${esc(r.tier.text)}</p>
-        <div class="score-cmp"><i class="i i-gauge"></i>${r.overall >= 1000 ? `${times}× um PC médio para jogos` : `${Math.round(r.overall / 10)}% de um PC médio para jogos`}</div>
+        <div class="score-cmp2"><div><b>${xf(r.single)}</b><span>em um núcleo<br>jogos e dia a dia</span></div><div><b>${xf(r.multi)}</b><span>em todos os núcleos<br>tarefas pesadas</span></div></div>
+        <div class="faint" style="font-size:11.5px;margin-top:6px">comparado a um Ryzen 5 5600 (PC médio para jogos)</div>
         ${delta != null && delta !== 0 ? `<div class="badge ${delta > 0 ? "ok" : "warn"}" style="margin-top:10px">${delta > 0 ? "+" : ""}${delta}% desde o último teste</div>` : ""}
         <div class="row" style="margin-top:16px;justify-content:center"><button class="btn" data-act="benchstart"><i class="i i-rotate-ccw"></i>Testar de novo</button></div>
       </div>
@@ -54,6 +54,7 @@ function renderBench() {
           ${bar("single", "Um núcleo", "Dia a dia e a maioria dos jogos", "cpu")}
           ${bar("multi", "Todos os núcleos", "Edição de vídeo, compactar arquivos, IA, jogar e transmitir", "layers")}
           ${bar("memory", "Memória", "Velocidade da memória RAM", "memory-stick")}</div>
+        ${(r.cpus || []).length ? cpuCompare(r) : ""}
         <div class="card"><div class="card-title"><span><i class="i i-sparkles"></i> Para o que ele serve</span></div>
           <div class="uses">${r.uses.map((u) => `<div class="use ${u.ok ? "ok" : "no"}"><i class="i i-${u.icon}"></i><span>${esc(u.name)}</span>
             <span class="badge ${u.ok ? "ok" : "warn"}">${u.ok ? '<i class="i i-check"></i>vai bem' : "pode ficar lento"}</span></div>`).join("")}</div></div>
@@ -63,12 +64,35 @@ function renderBench() {
     ${r.tips.length ? `<div class="tips">${r.tips.map(tipCard).join("")}</div>`
       : `<div class="card row" style="gap:14px"><i class="i i-circle-check" style="font-size:26px;color:var(--p-ok)"></i><div><b>Nada importante para melhorar</b>
          <div class="muted" style="font-size:13px">Memória, disco, energia e temperatura estão em ordem. Seu PC está entregando o que pode.</div></div></div>`}
+    ${/X3D/i.test(r.cpuName || "") ? `<div class="card row x3d-note"><i class="i i-gamepad-2"></i><div><b>Seu processador tem 3D V-Cache</b>
+      <div class="muted" style="font-size:13px">Em jogos ele rende bem mais do que a parte "um núcleo" sugere: o cache extra, que é o grande trunfo dos processadores X3D nos jogos, não entra neste teste.</div></div></div>` : ""}
     <div class="row faint bench-foot"><i class="i i-info"></i><span>${r.telemetry && r.telemetry.maxTemp != null ? `Temperatura máxima do processador no teste: <b>${fmt(r.telemetry.maxTemp)} °C</b>. ` : ""}
       Notas aproximadas, comparadas a um PC médio para jogos (Ryzen 5 5600 / Core i5-12400 com DDR4-3200 = 1000). O teste mede o processador e a memória; a placa de vídeo não entra.</span></div>
     ${B.history.length > 1 ? benchHistory() : ""}
   </div>`;
   countUp();
 }
+
+// "1,5×" quando acima do PC médio, "80%" quando abaixo
+const xf = (v) => (v >= 1000 ? (v / 1000).toLocaleString(PT, { maximumFractionDigits: 1 }) + "×" : Math.round(v / 10) + "%");
+
+// o seu resultado no meio de processadores conhecidos (mesma escala: Ryzen 5 5600 = 1000)
+let cmpMode = "multi";
+function cpuCompare(r) {
+  const idx = cmpMode === "multi" ? 2 : 1;
+  const mine = cmpMode === "multi" ? r.multi : r.single;
+  const rows = r.cpus.map((c) => ({ name: c[0], v: c[idx], me: false })).concat([{ name: "Seu PC", v: mine, me: true }]).sort((a, b) => b.v - a.v);
+  const max = Math.max(...rows.map((x) => x.v)) * 1.05;
+  return `<div class="card"><div class="card-title"><span><i class="i i-chart-no-axes-column"></i> Comparado com outros processadores</span>
+      <div class="seg" style="text-transform:none;letter-spacing:0"><button class="${cmpMode === "multi" ? "on" : ""}" data-cmp="multi">Todos os núcleos</button><button class="${cmpMode === "single" ? "on" : ""}" data-cmp="single">Um núcleo</button></div></div>
+    <div class="cmp">${rows.map((x) => `<div class="cmp-row ${x.me ? "me" : ""}"><span class="cmp-name">${esc(x.name)}</span>
+      <span class="cmp-track"><i style="width:${(x.v / max) * 100}%"></i></span><b class="num">${fmt(x.v)}</b></div>`).join("")}</div>
+    <div class="faint" style="font-size:11.5px;margin-top:8px">Outros processadores: médias públicas aproximadas (Cinebench R23) convertidas para a mesma escala.</div></div>`;
+}
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-cmp]");
+  if (b) { cmpMode = b.dataset.cmp; renderBench(); }
+});
 
 function renderBenchRunning() {
   const pct = benchPct();

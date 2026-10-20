@@ -87,7 +87,8 @@ exports.activate = (ctx) => {
     const telemetry = { maxTemp: temps.length ? Math.max(...temps) : null,
       throttle: multi.length >= 4 ? Math.max(0, 1 - avg(multi.slice(-third)) / avg(multi.slice(0, third))) : null };
     const sc = require("./bench").score(result);
-    const entry = { at: new Date().toISOString(), ...sc, raw: result, telemetry,
+    const entry = { at: new Date().toISOString(), ...sc, raw: result, telemetry, cpuName: (lastSnap && lastSnap.hw && lastSnap.hw.cpuName) || "",
+      cpus: require("./bench").CPUS,
       tips: require("./bench").tips({ facts: bench.facts || {}, telemetry, powerPlan: powerPlan(), engine }) };
     bench.last = entry;
     bench.history = [{ at: entry.at, overall: sc.overall, single: sc.single, multi: sc.multi, memory: sc.memory, tier: sc.tier.name }, ...bench.history].slice(0, 30);

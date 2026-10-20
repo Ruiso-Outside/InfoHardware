@@ -20,6 +20,14 @@ const USES = [
   { id: "ai", icon: "brain", name: "IA local e programação pesada", ok: (s) => s.multi >= 1300 && s.memory >= 900 },
 ];
 
+// Processadores conhecidos na mesma escala (Ryzen 5 5600 = 1000), a partir de médias públicas do Cinebench R23
+// [um núcleo, todos os núcleos]. Aproximado: serve para a pessoa se situar, não é medição deste programa.
+const CPUS = [
+  ["Ryzen 5 3600", 830, 855], ["Core i3-12100", 1080, 780], ["Ryzen 5 5600G", 940, 1020], ["Ryzen 5 5600", 1000, 1000],
+  ["Ryzen 7 5700X", 1000, 1290], ["Core i5-12400", 1120, 1090], ["Ryzen 7 7800X3D", 1160, 1640], ["Core i5-14600K", 1310, 2200],
+  ["Core i7-14700K", 1400, 3180], ["Ryzen 9 9950X3D", 1440, 3820],
+];
+
 function score(r) {
   const single = Math.round((r.single / REF.single) * 1000);
   const multi = Math.round((r.multi / REF.multi) * 1000);
@@ -95,4 +103,4 @@ function tips({ facts = {}, telemetry = {}, powerPlan = null, engine = {} }) {
   return out.sort((a, b) => order[a.impact] - order[b.impact]);
 }
 
-module.exports = { score, tips, REF };
+module.exports = { score, tips, REF, CPUS };
