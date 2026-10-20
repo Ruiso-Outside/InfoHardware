@@ -111,7 +111,7 @@ const statOf = (k) => {
 const head = (title, sub, actions = "") => `<div class="p-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div><div class="actions">${actions}</div></div>`;
 
 // ------------------------------------------------------------------ telas
-const TABS = { dash: renderDash, hw: renderHardware, sensors: renderSensors, perf: renderPerf, overlay: renderOverlay, settings: renderSettings };
+const TABS = { dash: renderDash, bench: () => renderBench(), hw: renderHardware, sensors: renderSensors, perf: renderPerf, overlay: renderOverlay, settings: renderSettings };
 
 function render(fresh) {
   $$(".p-subnav [data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -336,6 +336,8 @@ function renderSettings() {
 
 // ------------------------------------------------------------------ ações
 const ACTIONS = {
+  benchstart: () => call("bench-start").then((b) => { B = { ...B, ...b }; renderBench(); }).catch((e) => toast(e.message, "err")),
+  benchcancel: () => call("bench-cancel"),
   elevate: () => call("elevate").catch((e) => toast(e.message, "err")),
   restart: () => call("restart-engine").catch((e) => toast(e.message, "err")),
   pawnio: () => call("install-pawnio"),
@@ -360,6 +362,11 @@ document.addEventListener("click", (e) => {
   if (t) { tab = t.dataset.tab; render(true); return; }
   const ty = e.target.closest("[data-type]");
   if (ty) { sensorType = ty.dataset.type; renderSensors(); return; }
+  const ba = e.target.closest("[data-benchact]");
+  if (ba) {
+    if (ba.dataset.benchact === "pawnio") return ACTIONS.pawnio();
+    return call("bench-action", ba.dataset.benchact).then((m) => m && toast(m, "ok")).catch((er) => toast(er.message, "err"));
+  }
   const a = e.target.closest("[data-act]");
   if (a && ACTIONS[a.dataset.act]) ACTIONS[a.dataset.act]();
 });
@@ -370,6 +377,7 @@ piphin.on("snap", (s) => {
   S.snap = s;
   pushHistory(s);
   if (tab === "dash") renderDash();
+  else if (tab === "bench" && B.running) renderBenchRunning();
   else if (tab === "sensors") { if ($("table.table tr[data-id]")) updateSensorValues(); else renderSensors(); }
   else if (tab === "perf") { drawCharts(); $$(".perf-grid .stat").forEach((el) => { const keys = el.parentElement.querySelector("canvas").dataset.keys.split(","); el.innerHTML = keys.map((k) => `${esc(SERIES[k][0])}: ${statOf(k)}`).join("<br>"); }); }
   else if (tab === "overlay") { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; }
@@ -381,6 +389,14 @@ piphin.on("engine", (e) => { S.engine = e; renderEngine(); if (tab === "settings
 piphin.on("settings", (s) => { S.settings = s; if (tab === "overlay") renderOverlay(); });
 piphin.on("recording", (r) => { S.recording = r; if (r.last) lastSession = r.last; renderEngine(); if (tab === "perf") renderPerf(); });
 
+piphin.on("bench", (b) => {
+  const was = B.running;
+  B = { ...B, ...b };
+  if (b.error) toast(b.error, "err");
+  if (tab === "bench") { if (B.running && was && $(".bench-hero.running")) renderBenchRunning(); else render(); }
+  else if (was && !B.running && B.last && !b.error) toast("Teste concluído: " + fmt(B.last.overall) + " pontos (" + B.last.tier.name + ")", "ok");
+});
+call("bench-state").then((b) => { B = { ...B, ...b }; if (tab === "bench") render(); }).catch(() => {});
 call("state").then((st) => {
   S = { ...S, ...st };
   if (st.snap) pushHistory(st.snap);

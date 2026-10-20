@@ -26,7 +26,7 @@ Write-Host '==> Montando o módulo...' -ForegroundColor Magenta
 $manifest = Get-Content "$root\module\module.json" -Raw -Encoding UTF8 | ConvertFrom-Json
 $manifest.version = $version
 $manifest | ConvertTo-Json | Set-Content -Encoding UTF8 "$stage\module.json"
-Copy-Item "$root\module\backend.js" $stage
+Copy-Item "$root\module\*.js", "$root\module\*.ps1" $stage
 Copy-Item "$root\module\web" "$stage\web" -Recurse
 Copy-Item "$root\src\InfoHardware\Assets\logo.png" "$stage\icons\infohardware.png"
 

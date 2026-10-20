@@ -52,7 +52,49 @@ exports.activate = (ctx) => {
   let starting = null;
 
   const setEngine = (patch) => { engine = { ...engine, ...patch }; ctx.emit("engine", engine); };
-  const needed = () => viewVisible || settings.overlay.enabled || !!rec;
+  const needed = () => viewVisible || settings.overlay.enabled || !!rec || bench.running;
+
+  // ---------------------------------------------------------------- teste de desempenho (benchmark)
+  const BENCH_FILE = path.join(ctx.dataDir, "bench-history.json");
+  const bench = { running: false, phase: "", pct: 0, samples: [], facts: null, last: null, history: readJson(BENCH_FILE, []) };
+  const benchPublic = () => ({ running: bench.running, phase: bench.phase, pct: bench.pct, last: bench.last, history: bench.history });
+
+  function powerPlan() {
+    try {
+      const out = require("child_process").execFileSync("powercfg.exe", ["/getactivescheme"], { windowsHide: true, encoding: "latin1" });
+      const guid = (out.match(/[0-9a-f]{8}-[0-9a-f-]{27}/i) || [""])[0].toLowerCase();
+      return { guid, saver: guid === "a1841308-3bce-4f6d-9306-ac5b6e05d8b8" };
+    } catch { return null; }
+  }
+
+  async function startBench() {
+    if (bench.running) return benchPublic();
+    await ensureEngine();
+    Object.assign(bench, { running: true, phase: "start", pct: 0, samples: [], facts: null });
+    send({ cmd: "checks" });
+    send({ cmd: "bench" });
+    ctx.emit("bench", benchPublic());
+    return benchPublic();
+  }
+
+  function finishBench(result) {
+    bench.running = false;
+    // temperatura e clock durante o teste (quando os sensores estão disponíveis)
+    const temps = bench.samples.map((s) => s.temp).filter((v) => typeof v === "number" && v > 0);
+    const multi = bench.samples.filter((s) => s.phase === "multi" && typeof s.clock === "number" && s.clock > 0).map((s) => s.clock);
+    const third = Math.max(1, Math.floor(multi.length / 3));
+    const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+    const telemetry = { maxTemp: temps.length ? Math.max(...temps) : null,
+      throttle: multi.length >= 4 ? Math.max(0, 1 - avg(multi.slice(-third)) / avg(multi.slice(0, third))) : null };
+    const sc = require("./bench").score(result);
+    const entry = { at: new Date().toISOString(), ...sc, raw: result, telemetry,
+      tips: require("./bench").tips({ facts: bench.facts || {}, telemetry, powerPlan: powerPlan(), engine }) };
+    bench.last = entry;
+    bench.history = [{ at: entry.at, overall: sc.overall, single: sc.single, multi: sc.multi, memory: sc.memory, tier: sc.tier.name }, ...bench.history].slice(0, 30);
+    try { fs.writeFileSync(BENCH_FILE, JSON.stringify(bench.history, null, 2)); } catch { /* sem disco */ }
+    ctx.emit("bench", benchPublic());
+    scheduleIdleStop();
+  }
 
   function freePort() {
     return new Promise((resolve, reject) => {
@@ -102,6 +144,7 @@ exports.activate = (ctx) => {
         eng = null;
         lastSnap = null;
         setEngine({ status: "off" });
+        if (bench.running) { bench.running = false; ctx.emit("bench", { ...benchPublic(), error: "O motor de sensores parou durante o teste" }); }
         // caiu sozinho enquanto alguém usava: tenta de novo uma vez
         if (wasRunning && !stopping && needed()) setTimeout(() => ensureEngine().catch(() => {}), 2000);
       });
@@ -142,6 +185,18 @@ exports.activate = (ctx) => {
       ctx.emit("snap", m);
       if (settings.overlay.enabled) ctx.host.sendToWindow("overlay", "snap", m).catch(() => {});
       if (rec) recordRow(m);
+      if (bench.running) bench.samples.push({ phase: bench.phase, temp: m.hw.cpuTemp, clock: m.hw.cpuClock });
+    } else if (m.t === "bench") {
+      bench.phase = m.phase; bench.pct = m.pct;
+      ctx.emit("bench", benchPublic());
+    } else if (m.t === "checks") {
+      bench.facts = m.facts;
+    } else if (m.t === "benchDone") {
+      finishBench(m.result);
+    } else if (m.t === "benchCanceled" || m.t === "benchError") {
+      bench.running = false;
+      ctx.emit("bench", { ...benchPublic(), error: m.t === "benchError" ? m.message : "" });
+      scheduleIdleStop();
     } else if (m.t === "info") {
       info = { sections: m.sections, summary: m.summary, report: m.report };
       ctx.emit("info", info);
@@ -309,21 +364,37 @@ exports.activate = (ctx) => {
     return file;
   });
   // instala o PawnIO, ou reinstala quando os arquivos estão lá mas o driver não carregou ("broken")
+  // instala o PawnIO, ou repara quando os arquivos estão lá mas o driver não carregou ("broken"):
+  // uma janela de administrador (pawnio-fix.ps1) remove a instalação antiga, instala de novo e confere o driver
   ctx.handle("install-pawnio", async () => {
     const repair = engine.pawnIoState === "broken";
-    const cmd = "winget install --id namazso.PawnIO -e" + (repair ? " --force" : "");
     const r = await ctx.host.messageBox({ type: "question", title: repair ? "Reparar o driver PawnIO" : "Instalar o driver PawnIO",
-      message: repair ? "Reinstalar o driver PawnIO?" : "Instalar o driver PawnIO?",
+      message: repair ? "Reparar o driver PawnIO?" : "Instalar o driver PawnIO?",
       detail: (repair ? "Os arquivos do PawnIO estão no PC, mas o driver não está carregado no Windows, então a temperatura e o consumo da CPU não aparecem.\n\n"
         : "O PawnIO é o driver usado pelo LibreHardwareMonitor para ler temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.\n\n") +
-        `Será aberto um terminal executando:\n  ${cmd}\n\nAceite o pedido de administrador do Windows. Ao terminar, clique em "Reiniciar o motor".`,
+        "Vai abrir uma janela de administrador (aceite o pedido do Windows) que remove a instalação antiga, instala o PawnIO de novo pelo winget e confere se o driver carregou. Ao terminar, clique em \"Reiniciar o motor\".",
       buttons: [repair ? "Reparar" : "Instalar", "Cancelar"], defaultId: 0, cancelId: 1 });
     if (r !== 0) return false;
-    spawn("cmd.exe", ["/c", "start", "\"PawnIO\"", "cmd.exe", "/k", `${cmd} && echo. && echo Concluido! Volte ao Piphin Hub e clique em Reiniciar o motor.`],
-      { detached: true, stdio: "ignore", windowsHide: false }).unref();
+    const script = path.join(ctx.dir, "pawnio-fix.ps1");
+    const arg = `'"${script.replace(/'/g, "''")}"'`;
+    spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
+      `Start-Process powershell.exe -Verb RunAs -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',${arg}`], { detached: true, stdio: "ignore", windowsHide: true }).unref();
     return true;
   });
   ctx.handle("restart-engine", async () => { await stopEngine(); return ensureEngine(); });
+  ctx.handle("bench-state", () => benchPublic());
+  ctx.handle("bench-start", () => startBench());
+  ctx.handle("bench-cancel", () => { send({ cmd: "benchCancel" }); return true; });
+  // botões das dicas de melhoria (só coisas seguras, que a própria pessoa pede)
+  ctx.handle("bench-action", async (id) => {
+    if (id === "power-balanced") {
+      require("child_process").execFileSync("powercfg.exe", ["/setactive", "381b4222-f694-41f0-9685-ff5bb260df2e"], { windowsHide: true });
+      return "Plano de energia: Equilibrado";
+    }
+    if (id === "startup") { spawn("taskmgr.exe", ["/0", "/startup"], { detached: true, stdio: "ignore" }).unref(); return null; }
+    if (id === "cleanmgr") { spawn("cleanmgr.exe", [], { detached: true, stdio: "ignore" }).unref(); return null; }
+    throw new Error("Ação desconhecida");
+  });
 
   // ---------------------------------------------------------------- início
   bindHotkeys().catch((e) => ctx.log("atalhos", e));

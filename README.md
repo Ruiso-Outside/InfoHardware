@@ -40,3 +40,12 @@ Gerar o módulo (requer .NET SDK 9):
 powershell -ExecutionPolicy Bypass -File build-module.ps1
 ```
 Sai em `dist\piphin-module-infohardware-<versão>.zip`; publique-o no Release junto com o instalador.
+
+### Benchmark (no módulo do Hub)
+Aba **Benchmark**: um teste de ~15 s mede o processador (um núcleo e todos os núcleos) e a memória e dá uma nota fácil de entender.
+- **1000 pontos = um PC médio para jogos** (Ryzen 5 5600 / Core i5-12400 com DDR4-3200). As referências ficam em `module/bench.js` (`REF`) e são aproximadas.
+- Nível em estrelas, "para o que ele serve" (jogos, edição de vídeo, IA...) e **o que dá para melhorar**, com base no PC: memória abaixo do padrão (EXPO/XMP desligado), um pente só, pouca RAM, Windows num HD, disco cheio, modo Economia de energia, processador quente ou perdendo velocidade no teste, muitos programas na inicialização, driver de vídeo antigo.
+- O motor faz o teste (`src/InfoHardware.Engine/Bench.cs`) e coleta os dados do PC; a nota e as dicas são calculadas no módulo. O histórico fica em `bench-history.json` na pasta de dados do módulo.
+
+### PawnIO
+O instalador do PawnIO recusa instalar por cima de uma instalação existente (erro 183). O botão **Reparar PawnIO** abre `module/pawnio-fix.ps1` como administrador: remove a instalação antiga pelo próprio desinstalador, instala de novo pelo winget e confere se o driver (`\.\PawnIO`) carregou.

@@ -11,6 +11,7 @@
 <body>
   <nav class="p-subnav">
     <button class="item active" data-tab="dash"><i class="i i-layout-dashboard"></i>Painel</button>
+    <button class="item" data-tab="bench"><i class="i i-rocket"></i>Benchmark</button>
     <button class="item" data-tab="hw"><i class="i i-circuit-board"></i>Hardware</button>
     <button class="item" data-tab="sensors"><i class="i i-thermometer"></i>Sensores</button>
     <button class="item" data-tab="perf"><i class="i i-chart-line"></i>Desempenho <i class="dot live" id="recDot" hidden></i></button>
@@ -21,6 +22,7 @@
   </nav>
   <main id="scroll"><div id="banner"></div><div id="content"></div></main>
   <div id="toasts" class="toasts"></div>
+  <script src="bench-ui.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

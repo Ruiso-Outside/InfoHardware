@@ -108,6 +108,33 @@ sealed class Session(StreamWriter writer)
         }
     }
 
+    CancellationTokenSource? _benchCts;
+
+    // teste de desempenho numa thread própria; o andamento vai em mensagens "bench" (no máximo 4 por segundo)
+    void StartBench()
+    {
+        if (_benchCts != null) return;
+        var cts = _benchCts = new CancellationTokenSource();
+        new Thread(() =>
+        {
+            long last = 0;
+            try
+            {
+                var r = Bench.RunAll((phase, pct) =>
+                {
+                    long now = System.Environment.TickCount;
+                    if (now - last < 250 && pct > 0 && pct < 1) return;
+                    last = now;
+                    Send(new { t = "bench", phase, pct });
+                }, cts.Token);
+                if (cts.IsCancellationRequested) Send(new { t = "benchCanceled" });
+                else Send(new { t = "benchDone", result = r });
+            }
+            catch (Exception ex) { Send(new { t = "benchError", message = ex.Message }); }
+            finally { _benchCts = null; }
+        }) { IsBackground = true, Name = "Bench" }.Start();
+    }
+
     public void Run(StreamReader reader)
     {
         bool admin = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
@@ -175,6 +202,11 @@ sealed class Session(StreamWriter writer)
                             var (sections, summary) = SystemInfoService.Collect();
                             Send(new { t = "info", sections, summary, report = SystemInfoService.BuildReport(sections) });
                         }) { IsBackground = true }.Start();
+                        break;
+                    case "bench": StartBench(); break;
+                    case "benchCancel": _benchCts?.Cancel(); break;
+                    case "checks":
+                        new Thread(() => Send(new { t = "checks", facts = Bench.Checks() })) { IsBackground = true }.Start();
                         break;
                     case "quit": return;
                 }
