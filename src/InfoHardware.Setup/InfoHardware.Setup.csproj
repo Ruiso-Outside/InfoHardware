@@ -14,7 +14,7 @@
     <RootNamespace>InfoHardware.Setup</RootNamespace>
     <ApplicationIcon>..\InfoHardware\Assets\app.ico</ApplicationIcon>
     <ApplicationManifest>setup.manifest</ApplicationManifest>
-    <Version>1.2.3</Version>
+    <Version>1.3.0</Version>
     <Product>InfoHardware Setup</Product>
     <Company>InfoHardware</Company>
     <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
