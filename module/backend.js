@@ -131,7 +131,7 @@ exports.activate = (ctx) => {
 
   function onMessage(m) {
     if (m.t === "hello") {
-      setEngine({ status: "running", admin: m.admin, fps: m.fps, pawnIo: m.pawnIo, error: "", fpsError: m.fpsError || "",
+      setEngine({ status: "running", admin: m.admin, fps: m.fps, pawnIo: m.pawnIo, pawnIoState: m.pawnIoState || (m.pawnIo ? "ok" : "missing"), error: "", fpsError: m.fpsError || "",
         limitedReason: m.admin ? "" : engine.limitedReason || "sem administrador" });
       if (!info) send({ cmd: "info" });
     } else if (m.t === "structure") {
@@ -308,14 +308,18 @@ exports.activate = (ctx) => {
     fs.writeFileSync(file, "﻿" + info.report, "utf8");
     return file;
   });
+  // instala o PawnIO, ou reinstala quando os arquivos estão lá mas o driver não carregou ("broken")
   ctx.handle("install-pawnio", async () => {
-    const r = await ctx.host.messageBox({ type: "question", title: "Instalar driver PawnIO",
-      message: "Instalar o driver PawnIO?",
-      detail: "O PawnIO é o driver usado pelo LibreHardwareMonitor para ler temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.\n\n" +
-        "Será aberto um terminal executando:\n  winget install --id namazso.PawnIO -e\n\nDepois de concluir, clique em \"Reiniciar o motor\".",
-      buttons: ["Instalar", "Cancelar"], defaultId: 0, cancelId: 1 });
+    const repair = engine.pawnIoState === "broken";
+    const cmd = "winget install --id namazso.PawnIO -e" + (repair ? " --force" : "");
+    const r = await ctx.host.messageBox({ type: "question", title: repair ? "Reparar o driver PawnIO" : "Instalar o driver PawnIO",
+      message: repair ? "Reinstalar o driver PawnIO?" : "Instalar o driver PawnIO?",
+      detail: (repair ? "Os arquivos do PawnIO estão no PC, mas o driver não está carregado no Windows, então a temperatura e o consumo da CPU não aparecem.\n\n"
+        : "O PawnIO é o driver usado pelo LibreHardwareMonitor para ler temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.\n\n") +
+        `Será aberto um terminal executando:\n  ${cmd}\n\nAceite o pedido de administrador do Windows. Ao terminar, clique em "Reiniciar o motor".`,
+      buttons: [repair ? "Reparar" : "Instalar", "Cancelar"], defaultId: 0, cancelId: 1 });
     if (r !== 0) return false;
-    spawn("cmd.exe", ["/c", "start", "\"PawnIO\"", "cmd.exe", "/k", "winget install --id namazso.PawnIO -e && echo. && echo Concluido! Volte ao Piphin Hub e clique em Reiniciar o motor."],
+    spawn("cmd.exe", ["/c", "start", "\"PawnIO\"", "cmd.exe", "/k", `${cmd} && echo. && echo Concluido! Volte ao Piphin Hub e clique em Reiniciar o motor.`],
       { detached: true, stdio: "ignore", windowsHide: false }).unref();
     return true;
   });

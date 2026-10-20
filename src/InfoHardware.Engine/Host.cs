@@ -69,6 +69,22 @@ public static class Host
 
 sealed class Session(StreamWriter writer)
 {
+    [System.Runtime.InteropServices.DllImport("kernel32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
+    static extern IntPtr CreateFile(string name, uint access, uint share, IntPtr sa, uint creation, uint flags, IntPtr template);
+    [System.Runtime.InteropServices.DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h);
+
+    /// <summary>Driver PawnIO (temperatura e consumo da CPU): "ok", "broken" (arquivos instalados, driver não carregado) ou "missing".</summary>
+    static string PawnIo()
+    {
+        var h = CreateFile(@"\\.\PawnIO", 0, 3, IntPtr.Zero, 3, 0, IntPtr.Zero);
+        int err = System.Runtime.InteropServices.Marshal.GetLastWin32Error();
+        if (h != new IntPtr(-1)) { CloseHandle(h); return "ok"; }
+        if (err == 5) return "ok"; // existe, só não abriu sem administrador
+        bool files = File.Exists(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.ProgramFiles), "PawnIO", "PawnIOLib.dll"))
+                     || Registry.LocalMachine.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO") != null;
+        return files ? "broken" : "missing";
+    }
+
     static readonly JsonSerializerOptions Json = new()
     {
         IncludeFields = true,
@@ -102,7 +118,8 @@ sealed class Session(StreamWriter writer)
             admin,
             fps,
             fpsError = fps ? null : _fps.Error,
-            pawnIo = Registry.LocalMachine.OpenSubKey(@"SYSTEM\CurrentControlSet\Services\PawnIO") != null,
+            pawnIo = PawnIo() == "ok",
+            pawnIoState = PawnIo(),
             version = typeof(Host).Assembly.GetName().Version.ToString(3),
         });
 

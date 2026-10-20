@@ -126,13 +126,18 @@ function renderEngine() {
   const [cls, txt] = map[e.status] || ["", e.status];
   $("#engine").innerHTML = `<i class="dot ${cls}"></i>${esc(txt)}`;
   $("#recDot").hidden = !S.recording.on;
-  let b = "";
-  if (e.status === "error") b = `<div class="p-banner err"><i class="i i-circle-x"></i><span class="grow">${esc(e.error)}</span><button class="btn sm" data-act="restart"><i class="i i-rotate-ccw"></i>Tentar de novo</button></div>`;
-  else if (e.status === "running" && !e.admin)
-    b = `<div class="p-banner"><i class="i i-shield"></i><span class="grow"><b>Modo limitado</b> · sem temperatura da CPU, discos e FPS (${esc(e.limitedReason || "sem administrador")}).</span>
-      <button class="btn sm primary" data-act="elevate"><i class="i i-shield-check"></i>Ativar modo completo</button></div>`;
-  else if (e.status === "running" && !e.pawnIo && S.snap && !isNum(S.snap.hw.cpuTemp))
-    b = `<div class="p-banner info"><i class="i i-info"></i><span class="grow">Temperatura e consumo da CPU precisam do driver <b>PawnIO</b>.</span><button class="btn sm" data-act="pawnio"><i class="i i-download"></i>Instalar PawnIO</button></div>`;
+  // avisos empilhados: tudo o que falta para ler todos os sensores aparece de uma vez
+  const list = [];
+  if (e.status === "error") list.push(`<div class="p-banner err"><i class="i i-circle-x"></i><span class="grow">${esc(e.error)}</span><button class="btn sm" data-act="restart"><i class="i i-rotate-ccw"></i>Tentar de novo</button></div>`);
+  if (e.status === "running" && !e.admin)
+    list.push(`<div class="p-banner"><i class="i i-shield"></i><span class="grow"><b>Modo limitado</b> · sem temperatura da CPU, discos e FPS (${esc(e.limitedReason || "sem administrador")}).</span>
+      <button class="btn sm primary" data-act="elevate"><i class="i i-shield-check"></i>Ativar modo completo</button></div>`);
+  if (e.status === "running" && e.pawnIoState === "broken")
+    list.push(`<div class="p-banner err"><i class="i i-triangle-alert"></i><span class="grow">O driver <b>PawnIO</b> está instalado, mas não carregou no Windows: sem temperatura e consumo da CPU.</span>
+      <button class="btn sm primary" data-act="pawnio"><i class="i i-rotate-ccw"></i>Reparar PawnIO</button></div>`);
+  else if (e.status === "running" && e.pawnIoState !== "ok" && S.snap && !isNum(S.snap.hw.cpuTemp))
+    list.push(`<div class="p-banner info"><i class="i i-info"></i><span class="grow">Temperatura e consumo da CPU precisam do driver <b>PawnIO</b>.</span><button class="btn sm" data-act="pawnio"><i class="i i-download"></i>Instalar PawnIO</button></div>`);
+  const b = list.join("");
   if ($("#banner").innerHTML !== b) $("#banner").innerHTML = b;
 }
 
@@ -317,8 +322,12 @@ function renderSettings() {
         `<label class="switch"><input type="checkbox" id="sAdm" ${st.admin ? "checked" : ""}><span></span></label>`)}
       ${row("activity", "Motor de sensores", e.status === "running" ? (e.admin ? "Rodando com todos os sensores." : "Rodando em modo limitado.") : e.status === "starting" ? "Iniciando..." : e.status === "error" ? esc(e.error) : "Desligado. Liga sozinho quando você abre o InfoHardware, o overlay ou uma gravação.",
         `${e.status === "running" && !e.admin ? `<button class="btn primary" data-act="elevate"><i class="i i-shield-check"></i>Modo completo</button>` : ""}<button class="btn" data-act="restart"><i class="i i-rotate-ccw"></i>Reiniciar</button>`)}
-      ${row("microchip", "Driver PawnIO", e.pawnIo ? "Instalado." : "Não instalado: sem temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.",
-        e.pawnIo ? `<span class="badge ok"><i class="i i-check"></i>instalado</span>` : `<button class="btn" data-act="pawnio"><i class="i i-download"></i>Instalar</button>`)}
+      ${row("microchip", "Driver PawnIO", e.pawnIoState === "ok" ? "Instalado e carregado." : e.pawnIoState === "broken"
+        ? "Instalado, mas o driver não carregou no Windows: sem temperatura e consumo da CPU. Reparar reinstala o driver."
+        : "Não instalado: sem temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.",
+        e.pawnIoState === "ok" ? `<span class="badge ok"><i class="i i-check"></i>funcionando</span>`
+        : e.pawnIoState === "broken" ? `<button class="btn primary" data-act="pawnio"><i class="i i-rotate-ccw"></i>Reparar</button>`
+        : `<button class="btn" data-act="pawnio"><i class="i i-download"></i>Instalar</button>`)}
       ${row("keyboard", "Atalhos", "Funcionam de qualquer lugar, inclusive dentro do jogo.", `<span class="row faint" style="font-size:12.5px">Overlay <kbd>${esc(st.hotkeys.overlay)}</kbd> · Gravar <kbd>${esc(st.hotkeys.record)}</kbd></span>`)}
     </div></div>`;
   $("#sInt").onchange = (ev) => call("settings", { interval: Number(ev.target.value) }).then((s) => { S.settings = s; toast("Intervalo salvo", "ok"); });

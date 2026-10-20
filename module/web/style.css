@@ -4,7 +4,7 @@ body { display: flex; flex-direction: column; overflow: hidden; }
 main { flex: 1; overflow-y: auto; }
 #content { padding: 22px 26px 30px; }
 #banner:empty { display: none; }
-#banner { padding: 16px 26px 0; }
+#banner { padding: 16px 26px 0; display: flex; flex-direction: column; gap: 8px; }
 
 .engine { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--p-text-2); padding: 0 6px; }
 
