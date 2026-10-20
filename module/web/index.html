@@ -2,23 +2,24 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: piphin:; style-src 'self' 'unsafe-inline' piphin:; script-src 'self'">
   <title>InfoHardware</title>
+  <link rel="stylesheet" href="piphin://ui/kit.css">
+  <link rel="stylesheet" href="piphin://ui/icons.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <nav class="tabs">
-    <button class="tab active" data-tab="dash"><span>◉</span>Painel</button>
-    <button class="tab" data-tab="hw"><span>▤</span>Hardware</button>
-    <button class="tab" data-tab="sensors"><span>≋</span>Sensores</button>
-    <button class="tab" data-tab="perf"><span>⌁</span>Desempenho <i class="rec-dot" id="recDot" hidden></i></button>
-    <button class="tab" data-tab="overlay"><span>▣</span>Overlay</button>
-    <button class="tab" data-tab="settings"><span>⚙</span>Ajustes</button>
+  <nav class="p-subnav">
+    <button class="item active" data-tab="dash"><i class="i i-layout-dashboard"></i>Painel</button>
+    <button class="item" data-tab="hw"><i class="i i-circuit-board"></i>Hardware</button>
+    <button class="item" data-tab="sensors"><i class="i i-thermometer"></i>Sensores</button>
+    <button class="item" data-tab="perf"><i class="i i-chart-line"></i>Desempenho <i class="dot live" id="recDot" hidden></i></button>
+    <button class="item" data-tab="overlay"><i class="i i-gamepad-2"></i>Overlay</button>
+    <button class="item" data-tab="settings"><i class="i i-sliders-horizontal"></i>Ajustes</button>
     <div class="spacer"></div>
     <div class="engine" id="engine"></div>
   </nav>
-  <div id="banner"></div>
-  <main id="content"></main>
+  <main id="scroll"><div id="banner"></div><div id="content"></div></main>
   <div id="toasts" class="toasts"></div>
   <script src="app.js"></script>
 </body>
