@@ -1,0 +1,11 @@
+{
+  "id": "infohardware",
+  "name": "InfoHardware",
+  "version": "0.0.0",
+  "description": "Informações do hardware, sensores e monitoramento em tempo real com overlay de FPS para jogos.",
+  "main": "backend.js",
+  "ui": "web/index.html",
+  "icon": "icons/infohardware.png",
+  "accent": "#a855f7",
+  "minHub": "1.3.0"
+}

@@ -25,3 +25,18 @@ Requer .NET SDK 9:
 powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 Diagnóstico de sensores: `InfoHardware.exe --report relatorio.txt`
+
+## Módulo do Piphin Hub
+O InfoHardware também roda **dentro do [Piphin Hub](https://github.com/Ruiso-Outside/Piphin-Hub)** (1.3.0 ou mais novo), como módulo de cerca de 4,5 MB, com as mesmas telas (Painel, Hardware, Sensores, Desempenho, Overlay) e o overlay de jogo.
+
+- **Motor de sensores** (`src/InfoHardware.Engine`): biblioteca .NET Framework 4.7.2 que reaproveita os serviços do app (`HardwareMonitor`, `FpsMonitor`, `SystemInfoService`) e roda **dentro do PowerShell do Windows** (`start.ps1`). Assim não há `.exe` próprio para o Controle Inteligente de Aplicativos bloquear. Ele conversa com o módulo por uma conexão local (127.0.0.1) protegida por um código e se encerra junto com o módulo.
+- **Administrador**: o motor é aberto com o pedido do Windows (UAC) para ler temperatura da CPU, discos e FPS. Se o pedido for recusado, roda em modo limitado (GPU, uso, RAM, rede) e a tela oferece "Ativar modo completo".
+- O motor só fica ligado enquanto alguém usa: a tela do módulo aberta, o overlay ou uma gravação (desliga 30 s depois).
+- **Interface** (`module/`): `backend.js` (o papel do app no Hub), `web/` (telas e overlay).
+- As sessões gravadas ficam em `Documentos\InfoHardware\Sessoes`, como no app.
+
+Gerar o módulo (requer .NET SDK 9):
+```
+powershell -ExecutionPolicy Bypass -File build-module.ps1
+```
+Sai em `dist\piphin-module-infohardware-<versão>.zip`; publique-o no Release junto com o instalador.

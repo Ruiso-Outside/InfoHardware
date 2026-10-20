@@ -2,7 +2,9 @@ using System.Management;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
+#if NET
 using System.Runtime.Intrinsics.X86;
+#endif
 using System.Text;
 using InfoHardware.Core;
 using Microsoft.Win32;
@@ -71,6 +73,11 @@ public static class SystemInfoService
     }
 
     static void Try(Action a) { try { a(); } catch { /* seção indisponível neste PC */ } }
+
+#if !NET
+    [DllImport("kernel32.dll")] static extern bool IsProcessorFeaturePresent(int feature);
+    static bool Pf(int feature) { try { return IsProcessorFeaturePresent(feature); } catch { return false; } }
+#endif
 
     // ------------------------------------------------------------------ helpers
     static List<ManagementBaseObject> Query(string wql, string scope = @"root\cimv2")
@@ -187,10 +194,16 @@ public static class SystemInfoService
 
         var ext = new List<string>();
         void X(bool ok, string n) { if (ok) ext.Add(n); }
+#if NET
         X(Sse3.IsSupported, "SSE3"); X(Ssse3.IsSupported, "SSSE3"); X(Sse41.IsSupported, "SSE4.1"); X(Sse42.IsSupported, "SSE4.2");
         X(Avx.IsSupported, "AVX"); X(Avx2.IsSupported, "AVX2"); X(Fma.IsSupported, "FMA3"); X(Avx512F.IsSupported, "AVX-512");
         X(System.Runtime.Intrinsics.X86.Aes.IsSupported, "AES-NI"); X(Bmi1.IsSupported, "BMI1"); X(Bmi2.IsSupported, "BMI2");
         X(Popcnt.IsSupported, "POPCNT");
+#else
+        // .NET Framework (motor do módulo do Piphin Hub): pergunta ao Windows
+        X(Pf(13), "SSE3"); X(Pf(36), "SSSE3"); X(Pf(37), "SSE4.1"); X(Pf(38), "SSE4.2");
+        X(Pf(39), "AVX"); X(Pf(40), "AVX2"); X(Pf(41), "AVX-512");
+#endif
         if (ext.Count > 0) sec.Group("Instruções").Add("Suportadas", string.Join("  ·  ", ext));
         return sec;
     }
