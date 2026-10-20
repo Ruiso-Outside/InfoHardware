@@ -79,6 +79,18 @@ public sealed class HardwareMonitor : IDisposable
 
     public void ResetMinMax() => _resetRequested = true;
 
+    /// <summary>Fecha e abre de novo o LibreHardwareMonitor (ex.: o driver PawnIO acabou de ser instalado).</summary>
+    public void Reopen()
+    {
+        lock (_lock)
+        {
+            try { _computer.Close(); } catch { }
+            try { _computer.Open(); Error = null; } catch (Exception ex) { Error = ex.Message; }
+            _structureDirty = true;
+        }
+        _wake.Set();
+    }
+
     /// <summary>Força uma leitura imediata (ex.: após mudar o intervalo).</summary>
     public void Poke() => _wake.Set();
 

@@ -205,6 +205,33 @@ sealed class Session(StreamWriter writer)
                         break;
                     case "bench": StartBench(); break;
                     case "benchCancel": _benchCts?.Cancel(); break;
+                    case "pawnio": // instala ou repara o driver PawnIO (precisa do motor como administrador)
+                    {
+                        var setup = doc.RootElement.GetProperty("setup").GetString() ?? "";
+                        if (!admin) { Send(new { t = "pawnioDone", ok = false, reason = "noAdmin", detail = "O motor não está como administrador." }); break; }
+                        new Thread(() =>
+                        {
+                            var r = PawnInstall.Run(setup, PawnIo, text => Send(new { t = "pawnioStep", text }));
+                            if (r.ok)
+                            {
+                                // o LibreHardwareMonitor guarda a versão do PawnIO ao iniciar: atualiza e reabre os sensores
+                                PawnInstall.RefreshLhmVersion();
+                                _hw.Reopen();
+                            }
+                            Send(new { t = "pawnioDone", r.ok, r.state, r.reason, r.detail, r.exitCode, r.log });
+                        }) { IsBackground = true }.Start();
+                        break;
+                    }
+                    case "pawnioUi": // abre o instalador com a janela dele, para ver a mensagem de erro original
+                    {
+                        var setupUi = doc.RootElement.GetProperty("setup").GetString() ?? "";
+                        new Thread(() =>
+                        {
+                            try { PawnInstall.Cleanup(_ => { }); Process.Start(new ProcessStartInfo(setupUi, "-install") { UseShellExecute = true }); }
+                            catch (Exception ex) { Send(new { t = "error", message = ex.Message }); }
+                        }) { IsBackground = true }.Start();
+                        break;
+                    }
                     case "checks":
                         new Thread(() => Send(new { t = "checks", facts = Bench.Checks() })) { IsBackground = true }.Start();
                         break;

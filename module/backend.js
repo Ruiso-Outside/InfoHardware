@@ -202,6 +202,11 @@ exports.activate = (ctx) => {
     } else if (m.t === "info") {
       info = { sections: m.sections, summary: m.summary, report: m.report };
       ctx.emit("info", info);
+    } else if (m.t === "pawnioStep") {
+      pawn = { busy: true, text: m.text };
+      ctx.emit("pawnio", pawn);
+    } else if (m.t === "pawnioDone") {
+      if (pawnWait) pawnWait(m);
     } else if (m.t === "error") {
       ctx.log("motor", m.message);
     }
@@ -365,24 +370,102 @@ exports.activate = (ctx) => {
     fs.writeFileSync(file, "﻿" + info.report, "utf8");
     return file;
   });
-  // instala o PawnIO, ou reinstala quando os arquivos estão lá mas o driver não carregou ("broken")
-  // instala o PawnIO, ou repara quando os arquivos estão lá mas o driver não carregou ("broken"):
-  // uma janela de administrador (pawnio-fix.ps1) remove a instalação antiga, instala de novo e confere o driver
+  // ---------------------------------------------------------------- driver PawnIO (temperatura e consumo da CPU)
+  // Sem janela de PowerShell nem winget: baixa o instalador oficial, confere a assinatura e o motor (como
+  // administrador, com um pedido do Windows só se ele ainda não estiver assim) remove a instalação quebrada,
+  // instala, confere o driver e reabre os sensores. Veja src/InfoHardware.Engine/PawnInstall.cs.
+  const PAWN_URL = "https://github.com/namazso/PawnIO.Setup/releases/latest/download/PawnIO_setup.exe";
+  const PAWN_SIGNER = "CN=namazso.eu";
+  const PAWN_LOG = path.join(ctx.dataDir, "pawnio-install.log");
+  let pawn = { busy: false, text: "" };
+  let pawnWait = null; // resolve do "pawnioDone"
+  const pawnStep = (text) => { pawn = { busy: true, text }; ctx.emit("pawnio", pawn); };
+
+  function download(url, file, hops = 0) {
+    return new Promise((resolve, reject) => {
+      require("https").get(url, { headers: { "User-Agent": "InfoHardware" }, timeout: 30000 }, (res) => {
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location && hops < 5) { res.resume(); return resolve(download(res.headers.location, file, hops + 1)); }
+        if (res.statusCode !== 200) { res.resume(); return reject(new Error(`Download do PawnIO falhou (HTTP ${res.statusCode})`)); }
+        const out = fs.createWriteStream(file);
+        res.pipe(out);
+        out.on("finish", () => out.close(() => resolve(file)));
+        out.on("error", reject);
+      }).on("error", (e) => reject(new Error("Sem conexão para baixar o PawnIO: " + e.message))).on("timeout", function () { this.destroy(new Error("tempo esgotado")); });
+    });
+  }
+  function signer(file) {
+    const ps = `$s = Get-AuthenticodeSignature -LiteralPath '${file.replace(/'/g, "''")}'; "$($s.Status)|$($s.SignerCertificate.Subject)"`;
+    const out = require("child_process").execFileSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", ps], { windowsHide: true, encoding: "utf8" }).trim();
+    const [status, subject] = out.split("|");
+    return { valid: status === "Valid", subject: subject || "" };
+  }
+  function runInstall(setup) {
+    return new Promise((resolve, reject) => {
+      const t = setTimeout(() => { pawnWait = null; reject(new Error("A instalação do PawnIO não respondeu em 6 minutos")); }, 6 * 60 * 1000);
+      pawnWait = (r) => { clearTimeout(t); pawnWait = null; resolve(r); };
+      send({ cmd: "pawnio", setup });
+    });
+  }
+  const HINT = {
+    blocked: "Isso vem das proteções do Windows (Segurança do Windows → Segurança do dispositivo → Isolamento de núcleo → Integridade de memória, ou a lista de drivers bloqueados).",
+    hung: "Abra o instalador do PawnIO com a janela dele para ver a mensagem de erro.",
+    notInstalled: "Abra o instalador do PawnIO com a janela dele para ver a mensagem de erro.",
+    failed: "",
+  };
+
   ctx.handle("install-pawnio", async () => {
+    if (pawn.busy) return false;
     const repair = engine.pawnIoState === "broken";
     const r = await ctx.host.messageBox({ type: "question", title: repair ? "Reparar o driver PawnIO" : "Instalar o driver PawnIO",
       message: repair ? "Reparar o driver PawnIO?" : "Instalar o driver PawnIO?",
-      detail: (repair ? "Os arquivos do PawnIO estão no PC, mas o driver não está carregado no Windows, então a temperatura e o consumo da CPU não aparecem.\n\n"
-        : "O PawnIO é o driver usado pelo LibreHardwareMonitor para ler temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.\n\n") +
-        "Vai abrir uma janela de administrador (aceite o pedido do Windows) que remove a instalação antiga, instala o PawnIO de novo pelo winget e confere se o driver carregou. Ao terminar, clique em \"Reiniciar o motor\".",
+      detail: (repair ? "Os arquivos do PawnIO estão no PC, mas o driver não está carregado, então a temperatura e o consumo da CPU não aparecem.\n\n"
+        : "O PawnIO é o driver que permite ler a temperatura e o consumo da CPU, as ventoinhas e as tensões da placa-mãe.\n\n") +
+        "O InfoHardware baixa o instalador oficial (pawnio.eu), confere a assinatura e faz tudo sozinho: remove a instalação quebrada, instala e confere o driver." +
+        (engine.admin ? "" : "\n\nO Windows vai pedir permissão de administrador uma vez."),
       buttons: [repair ? "Reparar" : "Instalar", "Cancelar"], defaultId: 0, cancelId: 1 });
     if (r !== 0) return false;
-    const script = path.join(ctx.dir, "pawnio-fix.ps1");
-    const arg = `'"${script.replace(/'/g, "''")}"'`;
-    spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command",
-      `Start-Process powershell.exe -Verb RunAs -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File',${arg}`], { detached: true, stdio: "ignore", windowsHide: true }).unref();
-    return true;
+
+    toolBusy++;
+    let result = null, setup = path.join(ctx.dataDir, "PawnIO_setup.exe");
+    try {
+      pawnStep("Baixando o instalador oficial do PawnIO");
+      await download(PAWN_URL, setup);
+      pawnStep("Conferindo a assinatura do instalador");
+      const sig = signer(setup);
+      if (!sig.valid || !sig.subject.includes(PAWN_SIGNER)) throw new Error(`O instalador baixado não tem a assinatura oficial do PawnIO (${sig.subject || "sem assinatura"}). Nada foi instalado.`);
+      if (!engine.admin) {
+        pawnStep("Pedindo permissão de administrador ao Windows");
+        uacDeclined = false;
+        await stopEngine();
+        await ensureEngine({ forceAdmin: true }).catch(() => {});
+        if (!engine.admin) throw new Error("É preciso aceitar o pedido de administrador do Windows para instalar o driver.");
+      }
+      result = await runInstall(setup);
+      fs.writeFileSync(PAWN_LOG, (result.log || []).join("\r\n") + `\r\nresultado: ${result.ok ? "ok" : result.reason} ${result.detail || ""}\r\n`);
+      if (result.state) setEngine({ pawnIoState: result.state, pawnIo: result.state === "ok" });
+    } catch (e) {
+      result = { ok: false, reason: "error", detail: e.message };
+    } finally {
+      toolBusy--;
+      pawn = { busy: false, text: "" };
+      ctx.emit("pawnio", pawn);
+      scheduleIdleStop();
+    }
+
+    if (result.ok) {
+      ctx.host.messageBox({ type: "info", title: "PawnIO", message: "Pronto! O driver PawnIO está funcionando.",
+        detail: "A temperatura e o consumo da CPU já devem aparecer. Se ainda não aparecerem, clique em \"Reiniciar o motor\" em Ajustes." }).catch(() => {});
+      return true;
+    }
+    const canUi = ["hung", "notInstalled", "failed", "blocked"].includes(result.reason) && fs.existsSync(setup);
+    const buttons = [...(canUi ? ["Abrir o instalador do PawnIO"] : []), ...(fs.existsSync(PAWN_LOG) ? ["Ver o registro"] : []), "Fechar"];
+    const pick = await ctx.host.messageBox({ type: "warning", title: "PawnIO", message: "Não deu para ativar o driver PawnIO.",
+      detail: [result.detail, HINT[result.reason] || ""].filter(Boolean).join("\n\n"), buttons, defaultId: 0, cancelId: buttons.length - 1 });
+    if (buttons[pick] === "Abrir o instalador do PawnIO") send({ cmd: "pawnioUi", setup });
+    else if (buttons[pick] === "Ver o registro") ctx.host.showItem(PAWN_LOG).catch(() => {});
+    return false;
   });
+  ctx.handle("pawnio-state", () => pawn);
   ctx.handle("restart-engine", async () => { await stopEngine(); return ensureEngine(); });
   // ---------------------------------------------------------------- ferramentas para a IA (Piphin LLM), declaradas no module.json
   const until = async (ok, ms) => { for (const end = Date.now() + ms; Date.now() < end; await new Promise((r) => setTimeout(r, 250))) if (ok()) return true; return ok(); };

@@ -132,7 +132,9 @@ function renderEngine() {
   if (e.status === "running" && !e.admin)
     list.push(`<div class="p-banner"><i class="i i-shield"></i><span class="grow"><b>Modo limitado</b> · sem temperatura da CPU, discos e FPS (${esc(e.limitedReason || "sem administrador")}).</span>
       <button class="btn sm primary" data-act="elevate"><i class="i i-shield-check"></i>Ativar modo completo</button></div>`);
-  if (e.status === "running" && e.pawnIoState === "broken")
+  if (S.pawn && S.pawn.busy)
+    list.push(`<div class="p-banner info"><span class="spin"></span><span class="grow"><b>PawnIO</b> · ${esc(S.pawn.text)}...</span></div>`);
+  else if (e.status === "running" && e.pawnIoState === "broken")
     list.push(`<div class="p-banner err"><i class="i i-triangle-alert"></i><span class="grow">O driver <b>PawnIO</b> está instalado, mas não carregou no Windows: sem temperatura e consumo da CPU.</span>
       <button class="btn sm primary" data-act="pawnio"><i class="i i-rotate-ccw"></i>Reparar PawnIO</button></div>`);
   else if (e.status === "running" && e.pawnIoState !== "ok" && S.snap && !isNum(S.snap.hw.cpuTemp))
@@ -383,6 +385,8 @@ piphin.on("snap", (s) => {
   else if (tab === "overlay") { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; }
   renderEngine();
 });
+piphin.on("pawnio", (p) => { S.pawn = p; renderEngine(); });
+call("pawnio-state").then((p) => { S.pawn = p; renderEngine(); }).catch(() => {});
 piphin.on("structure", (g) => { S.structure = g; if (tab === "sensors") renderSensors(); });
 piphin.on("info", (i) => { S.info = i; if (tab === "hw") renderHardware(); });
 piphin.on("engine", (e) => { S.engine = e; renderEngine(); if (tab === "settings" || !S.snap) render(); });
