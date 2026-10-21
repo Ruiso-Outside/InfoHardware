@@ -41,6 +41,29 @@ powershell -ExecutionPolicy Bypass -File build-module.ps1
 ```
 Sai em `dist\piphin-module-infohardware-<versão>.zip`; publique-o no Release junto com o instalador.
 
+### Overlay de jogo (no módulo do Hub)
+Aba **Overlay**:
+- Três estilos: **Painel** (com gráfico do FPS dos últimos 60 s), **Linha** (discreto, numa linha só) e **Só FPS**.
+- Três temas: Neon, Escuro e Transparente.
+- Cores de alerta: FPS baixo e temperatura alta mudam de cor, e a temperatura alta pisca.
+- O nome do jogo e o tempo de partida aparecem no topo.
+
+**Ligar sozinho quando um jogo abrir**: o [Piphin Jogos](https://github.com/Ruiso-Outside/Piphin-Jogos) avisa quando um jogo de qualquer loja abre, e o overlay aparece e some sozinho. O `Ctrl+Shift+O` esconde o overlay só naquele jogo. Nesse modo o motor de sensores fica ligado em segundo plano.
+
+**Desempenho por jogo**: com o motor ligado durante a partida, o InfoHardware guarda, para cada jogo do Piphin Jogos (`desempenho-jogos.json`, até 30 partidas por jogo):
+- FPS médio, mínimo e 1% low;
+- temperaturas máximas da CPU e da GPU;
+- uso da CPU e da GPU;
+- o que segurou o FPS: placa de vídeo no limite, processador, ou FPS travado por V-Sync ou por um limite.
+
+O Piphin Jogos mostra isso na página do jogo, e a IA lê pela ferramenta `game_performance`.
+
+Os dois módulos conversam pelo servidor de ferramentas do Hub (1.5.0 ou mais novo):
+- o InfoHardware pergunta `jogos_now_playing` a cada 5 s;
+- o Jogos pede `infohardware_game_performance`.
+
+Código: `module/perf.js` (o desempenho por partida), `web/overlay-render.js` e `web/overlay.css` (o desenho, usado pelo overlay e pela prévia).
+
 ### Benchmark (no módulo do Hub)
 Aba **Benchmark**: um teste de ~15 s mede o processador (um núcleo e todos os núcleos) e a memória e dá uma nota fácil de entender.
 - **1000 pontos = um PC médio para jogos** (Ryzen 5 5600 / Core i5-12400 com DDR4-3200). As referências ficam em `module/bench.js` (`REF`) e são aproximadas.

@@ -268,43 +268,74 @@ function tickRec() {
   upd(); recTimer = setInterval(upd, 1000);
 }
 
-const SHOW = [["fps", "FPS"], ["frameTime", "Frametime e 1% low"], ["cpu", "CPU (uso e temperatura)"], ["gpu", "GPU (uso e temperatura)"], ["ram", "RAM"], ["vram", "VRAM"],
+const SHOW = [["game", "Jogo e tempo de partida"], ["fps", "FPS"], ["frameTime", "Frametime e 1% low"], ["cpu", "CPU (uso e temperatura)"], ["gpu", "GPU (uso e temperatura)"], ["ram", "RAM"], ["vram", "VRAM"],
   ["power", "Consumo (CPU e GPU)"], ["clocks", "Clocks"], ["clock", "Relógio"]];
+const OV_STYLES = [["panel", "Painel", "Tudo, com gráfico"], ["compact", "Linha", "Discreto, numa linha"], ["fps", "Só FPS", "O mínimo possível"]];
+const OV_THEMES = [["neon", "Neon"], ["dark", "Escuro"], ["glass", "Transparente"]];
+// leitura de exemplo para a prévia quando o motor ainda não mandou nada
+const SAMPLE = { hw: { cpuLoad: 38, cpuTemp: 67, gpuLoad: 97, gpuTemp: 72, vramUsedMb: 6400, vramTotalMb: 12288, ramUsedGb: 13.4, cpuPower: 74, gpuPower: 231, cpuClock: 5200, gpuClock: 2610 },
+  fps: { fps: 144, frameTime: 6.9, low1: 118, process: "jogo.exe" } };
+const sampleHist = Array.from({ length: 60 }, (_, i) => 138 + Math.sin(i / 4) * 9 + (i % 7 === 0 ? -22 : 0));
+const prevHist = [];
 function overlayPreview(o) {
-  const s = S.snap, h = (s && s.hw) || {}, f = (s && s.fps) || {}, sh = o.show, out = [];
-  const n = (v, d = 0) => (isNum(v) ? fmt(v, d) : "--");
-  const row = (k, cls, v) => `<div class="r"><span class="k ${cls}">${k}</span><span>${v}</span></div>`;
-  if (sh.fps) out.push(`<div class="r"><span class="k c">FPS</span><span class="fps">${isNum(f.fps) ? n(f.fps) : "144"}</span></div>`);
-  if (sh.frameTime) out.push(row("FT", "p", `${isNum(f.frameTime) ? n(f.frameTime, 1) : "6,9"} ms <span class="dim">1% ${isNum(f.low1) ? n(f.low1) : "118"}</span>`));
-  if (sh.cpu) out.push(row("CPU", "", `${n(h.cpuLoad)}% <span class="dim">${isNum(h.cpuTemp) ? n(h.cpuTemp) + "°C" : ""}</span>`));
-  if (sh.gpu) out.push(row("GPU", "c", `${n(h.gpuLoad)}% <span class="dim">${isNum(h.gpuTemp) ? n(h.gpuTemp) + "°C" : ""}</span>`));
-  if (sh.vram) out.push(row("VRAM", "p", `${isNum(h.vramUsedMb) ? n(h.vramUsedMb / 1024, 1) : "--"} GB`));
-  if (sh.ram) out.push(row("RAM", "g", `${n(h.ramUsedGb, 1)} GB`));
-  if (sh.power) out.push(row("W", "o", `${n(h.cpuPower)} <span class="dim">CPU</span> ${n(h.gpuPower)} <span class="dim">GPU</span>`));
-  if (sh.clocks) out.push(row("MHz", "c", `${n(h.cpuClock)} <span class="dim">/</span> ${n(h.gpuClock)}`));
-  if (sh.clock) out.push(row("⏱", "", new Date().toLocaleTimeString(PT, { hour: "2-digit", minute: "2-digit" })));
+  const live = S.snap && S.snap.fps && isNum(S.snap.fps.fps);
+  const snap = live ? S.snap : { ...SAMPLE, hw: { ...SAMPLE.hw, ...((S.snap && S.snap.hw) || {}) } };
+  const game = (S.playing && S.playing[0]) || { name: "Seu jogo", since: new Date(Date.now() - 47 * 60000).toISOString() };
   const [v, hz] = o.position.split("-");
-  const pos = `${v}:12px;${hz}:12px;--origin:${v} ${hz};transform:scale(${o.scale * 0.85});opacity:${o.opacity}`;
-  return `<div class="ov-box" style="${pos}">${out.join("") || `<span class="dim">InfoHardware</span>`}</div>`;
+  return `<div class="ov-pos" style="${v}:12px;${hz}:12px;transform-origin:${v} ${hz};transform:scale(${o.scale * 0.85});opacity:${o.opacity}">${OverlayRender.html(snap, o, game, live && prevHist.length > 3 ? prevHist : sampleHist)}</div>`;
+}
+function fitPreview() {
+  const pv = $(".ov-preview"), b = pv && pv.querySelector(".ov-pos"); if (!b) return;
+  const o = S.settings.overlay, room = pv.clientWidth - 24, w = b.offsetWidth * o.scale * 0.85;
+  if (w > room) b.style.transform = `scale(${(room / b.offsetWidth).toFixed(3)})`;
+}
+function jogosCard(o) {
+  const j = S.jogos, playing = S.playing || [];
+  const status = j === "ok" ? (playing.length ? `<span class="badge ok"><i class="i i-gamepad-2"></i>Jogando: ${esc(playing[0].name)}</span>` : `<span class="badge"><i class="i i-circle-check"></i>Piphin Jogos conectado</span>`)
+    : j === "missing" ? `<span class="badge warn"><i class="i i-info"></i>Instale o Piphin Jogos na Loja do Hub</span>`
+    : j === "nohub" ? `<span class="badge warn"><i class="i i-info"></i>Precisa do Piphin Hub 1.5.0</span>` : `<span class="badge"><span class="spin" style="width:12px;height:12px"></span>Procurando o Piphin Jogos</span>`;
+  return `<div class="auto-card ${o.auto ? "on" : ""}">
+    <div class="auto-ic"><i class="i i-zap"></i></div>
+    <div class="auto-txt"><h4>Ligar sozinho quando um jogo abrir</h4>
+      <p>O Piphin Jogos avisa quando você abre um jogo de qualquer loja: o overlay aparece, some quando o jogo fecha e o desempenho da partida fica guardado (e aparece na página do jogo no Piphin Jogos). O motor de sensores fica ligado em segundo plano; o Windows pede permissão de administrador uma vez quando o Hub abre.</p>
+      <div class="row" style="gap:8px;margin-top:8px">${status}</div></div>
+    <label class="switch"><input type="checkbox" id="oAuto" ${o.auto ? "checked" : ""} ${j === "ok" || o.auto ? "" : "disabled"}><span></span></label></div>`;
+}
+function perfList() {
+  const g = (S.perfGames || []).slice().sort((x, y) => String(y.last).localeCompare(String(x.last)));
+  if (!g.length) return `<p class="faint" style="font-size:12.5px">Nenhuma partida medida ainda. Com o overlay ligado (ou automático), cada partida de um jogo do Piphin Jogos fica registrada aqui.</p>`;
+  return `<div class="perf-mini">${g.map((x) => `<div><b>${esc(x.name)}</b><span>${isNum(x.fps_avg) ? fmt(x.fps_avg) + " FPS em média" : "--"}</span><span class="faint">${x.sessions} ${x.sessions === 1 ? "partida" : "partidas"} · ${x.last ? new Date(x.last).toLocaleDateString(PT) : ""}</span></div>`).join("")}</div>`;
 }
 function renderOverlay() {
   const o = S.settings.overlay;
-  $("#content").innerHTML = `<div>${head("Overlay de jogo", `FPS, frametime, CPU, GPU, VRAM e RAM por cima do jogo. Liga e desliga também com <kbd>${esc(S.settings.hotkeys.overlay)}</kbd>.`,
-      `<label class="row" style="gap:10px;font-weight:600">${o.enabled ? "Ligado" : "Desligado"}<label class="switch"><input type="checkbox" id="oOn" ${o.enabled ? "checked" : ""}><span></span></label></label>`)}
+  const opt = (name, list, cur) => `<div class="opt-grid" data-opt="${name}">${list.map(([k, l, d]) => `<button class="opt ${cur === k ? "on" : ""}" data-v="${k}"><b>${l}</b>${d ? `<span>${d}</span>` : ""}</button>`).join("")}</div>`;
+  $("#content").innerHTML = `<div>${head("Overlay de jogo", `FPS, temperaturas e uso por cima do jogo. Liga e desliga também com <kbd>${esc(S.settings.hotkeys.overlay)}</kbd>.`,
+      `<label class="row" style="gap:10px;font-weight:600">${o.enabled ? "Sempre ligado" : "Desligado"}<label class="switch"><input type="checkbox" id="oOn" ${o.enabled ? "checked" : ""}><span></span></label></label>`)}
+    ${jogosCard(o)}
     <div class="ov-layout">
       <div class="p-settings">
+        <div class="set" style="display:block"><h4 style="margin-bottom:10px">Estilo</h4>${opt("style", OV_STYLES, o.style)}</div>
+        <div class="set" style="display:block"><h4 style="margin-bottom:10px">Tema</h4>${opt("theme", OV_THEMES, o.theme)}</div>
         <div class="set"><div><h4>Posição</h4><p>Canto do monitor principal.</p></div><div class="corner-pick" id="oPos">${["top-left", "top-right", "bottom-left", "bottom-right"].map((k) => `<button data-v="${k}" class="${o.position === k ? "on" : ""}" title="${k}"></button>`).join("")}</div></div>
         <div class="set"><div><h4>Opacidade</h4><p>Quanto do jogo aparece por trás.</p></div><div class="slider-row"><input type="range" id="oOp" min="20" max="100" value="${Math.round(o.opacity * 100)}"><b>${Math.round(o.opacity * 100)}%</b></div></div>
         <div class="set"><div><h4>Tamanho</h4><p>Escala do texto e dos números.</p></div><div class="slider-row"><input type="range" id="oSc" min="60" max="200" step="10" value="${Math.round(o.scale * 100)}"><b>${Math.round(o.scale * 100)}%</b></div></div>
+        <div class="set"><div><h4>Gráfico de FPS</h4><p>Últimos 60 segundos, ao lado do FPS (estilo Painel).</p></div><label class="switch"><input type="checkbox" id="oGraph" ${o.graph !== false ? "checked" : ""}><span></span></label></div>
+        <div class="set"><div><h4>Cores de alerta</h4><p>FPS baixo em amarelo/vermelho; temperatura alta muda de cor e pisca.</p></div><label class="switch"><input type="checkbox" id="oColors" ${o.colors !== false ? "checked" : ""}><span></span></label></div>
         <div class="set" style="display:block"><h4 style="margin-bottom:12px">O que mostrar</h4><div class="checks">${SHOW.map(([k, n]) =>
           `<label><input type="checkbox" data-show="${k}" ${o.show[k] ? "checked" : ""}>${n}</label>`).join("")}</div></div>
+        <div class="set" style="display:block"><h4 style="margin-bottom:10px">Desempenho por jogo</h4>${perfList()}</div>
         <p class="faint" style="font-size:12.5px;margin:4px 2px">Aparece em jogos no modo <b>janela sem bordas</b>; em tela cheia exclusiva o Windows pode escondê-lo.${S.engine.status === "running" && !S.engine.fps ? " O FPS precisa do modo completo (administrador)." : ""}</p>
       </div>
       <div class="ov-preview"><div class="scene"></div>${overlayPreview(o)}<div class="tag">Prévia</div></div>
     </div></div>`;
+  fitPreview();
   const set = (patch, rerender = true) => call("settings", { overlay: patch }).then((s) => { S.settings = s; if (rerender) renderOverlay(); }).catch((e) => toast(e.message, "err"));
-  const live = () => { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; };
+  const live = () => { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; fitPreview(); };
   $("#oOn").onchange = (e) => set({ enabled: e.target.checked });
+  $("#oAuto").onchange = (e) => set({ auto: e.target.checked });
+  $("#oGraph").onchange = (e) => { S.settings.overlay.graph = e.target.checked; live(); set({ graph: e.target.checked }, false); };
+  $("#oColors").onchange = (e) => { S.settings.overlay.colors = e.target.checked; live(); set({ colors: e.target.checked }, false); };
+  $$("[data-opt]").forEach((g) => (g.onclick = (e) => { const b = e.target.closest("[data-v]"); if (b) set({ [g.dataset.opt]: b.dataset.v }); }));
   $("#oPos").onclick = (e) => { const b = e.target.closest("button"); if (b) set({ position: b.dataset.v }); };
   $("#oOp").oninput = (e) => { S.settings.overlay.opacity = e.target.value / 100; e.target.nextElementSibling.textContent = e.target.value + "%"; live(); };
   $("#oOp").onchange = (e) => set({ opacity: e.target.value / 100 }, false);
@@ -382,7 +413,8 @@ piphin.on("snap", (s) => {
   else if (tab === "bench" && B.running) renderBenchRunning();
   else if (tab === "sensors") { if ($("table.table tr[data-id]")) updateSensorValues(); else renderSensors(); }
   else if (tab === "perf") { drawCharts(); $$(".perf-grid .stat").forEach((el) => { const keys = el.parentElement.querySelector("canvas").dataset.keys.split(","); el.innerHTML = keys.map((k) => `${esc(SERIES[k][0])}: ${statOf(k)}`).join("<br>"); }); }
-  else if (tab === "overlay") { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; }
+  else if (tab === "overlay") { const pv = $(".ov-preview"); if (pv) pv.innerHTML = `<div class="scene"></div>${overlayPreview(S.settings.overlay)}<div class="tag">Prévia</div>`; fitPreview(); }
+  if (s.fps && isNum(s.fps.fps)) { prevHist.push(s.fps.fps); if (prevHist.length > 60) prevHist.shift(); }
   renderEngine();
 });
 piphin.on("pawnio", (p) => { S.pawn = p; renderEngine(); });
@@ -391,6 +423,13 @@ piphin.on("structure", (g) => { S.structure = g; if (tab === "sensors") renderSe
 piphin.on("info", (i) => { S.info = i; if (tab === "hw") renderHardware(); });
 piphin.on("engine", (e) => { S.engine = e; renderEngine(); if (tab === "settings" || !S.snap) render(); });
 piphin.on("settings", (s) => { S.settings = s; if (tab === "overlay") renderOverlay(); });
+// Piphin Jogos (jogo aberto) e desempenho de cada partida
+piphin.on("jogos", (j) => { S.jogos = j; if (tab === "overlay") renderOverlay(); });
+piphin.on("playing", (p) => { S.playing = p; if (tab === "overlay") renderOverlay(); });
+piphin.on("perf-session", (r) => {
+  call("perf-games").then((g) => { S.perfGames = g; if (tab === "overlay") renderOverlay(); }).catch(() => {});
+  toast(`${r.name}: ${fmt(r.fps_avg)} FPS em média nesta partida`, "ok");
+});
 piphin.on("recording", (r) => { S.recording = r; if (r.last) lastSession = r.last; renderEngine(); if (tab === "perf") renderPerf(); });
 
 piphin.on("bench", (b) => {

@@ -1,0 +1,43 @@
+/* Overlay de jogo (janela do overlay e prévia na aba Overlay) */
+.ovx { display: inline-block; font: 600 13px/1.45 "Segoe UI", system-ui, sans-serif; color: #ece9ff; white-space: nowrap; border-radius: 12px; }
+.ovx-s-panel { padding: 9px 12px; min-width: 150px; }
+.ovx-s-compact { display: inline-flex; align-items: center; gap: 9px; padding: 5px 12px; border-radius: 99px; }
+.ovx-s-fps { padding: 4px 12px; display: inline-flex; align-items: baseline; gap: 5px; }
+
+/* temas */
+.ovx-neon { background: rgba(11, 10, 18, .82); border: 1px solid rgba(168, 85, 247, .55); box-shadow: 0 0 14px rgba(168, 85, 247, .35); }
+.ovx-neon .ovx-k { color: #a855f7; } .ovx-neon .ovx-fps, .ovx-neon .ovx-big { color: #22d3ee; text-shadow: 0 0 10px rgba(34, 211, 238, .6); }
+.ovx-neon .ovx-spark polyline { stroke: #22d3ee; }
+.ovx-dark { background: rgba(14, 14, 18, .9); border: 1px solid rgba(255, 255, 255, .1); }
+.ovx-dark .ovx-k { color: #9ca3af; } .ovx-dark .ovx-fps, .ovx-dark .ovx-big { color: #fff; }
+.ovx-dark .ovx-spark polyline { stroke: #e5e7eb; }
+.ovx-glass { background: transparent; text-shadow: 0 1px 2px #000, 0 0 6px rgba(0, 0, 0, .9); }
+.ovx-glass .ovx-k { color: #fde047; } .ovx-glass .ovx-fps, .ovx-glass .ovx-big { color: #a3e635; }
+.ovx-glass .ovx-spark polyline { stroke: #a3e635; filter: drop-shadow(0 1px 1px #000); }
+
+/* partes */
+.ovx-game { display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: #c4bfe0; margin-bottom: 2px; max-width: 220px; }
+.ovx-game span { overflow: hidden; text-overflow: ellipsis; }
+.ovx-game em { font-style: normal; opacity: .75; }
+.ovx-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ovx-head > div { display: flex; align-items: baseline; gap: 4px; }
+.ovx-fps { font-size: 24px; font-weight: 800; line-height: 1.15; }
+.ovx-s-compact .ovx-fps { font-size: 15px; }
+.ovx-big { font-size: 30px; font-weight: 800; line-height: 1.1; }
+.ovx-unit { font-size: 11px; opacity: .7; }
+.ovx-spark { width: 74px; height: 22px; }
+.ovx-spark polyline { fill: none; stroke-width: 1.8; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.ovx-r { display: flex; gap: 12px; justify-content: space-between; }
+.ovx-k { min-width: 40px; }
+.ovx-dim { color: #9a93c0; font-weight: 500; }
+.ovx-glass .ovx-dim { color: #e5e7eb; }
+.ovx-s-compact i { font-style: normal; opacity: .65; font-size: 11px; }
+.ovx-sep { width: 1px; height: 12px; background: currentColor; opacity: .25; }
+.ovx-t { font-weight: 600; opacity: .9; }
+
+/* cores de alerta */
+.ovx .ok { color: #4ade80 !important; text-shadow: none; }
+.ovx .warn { color: #fbbf24 !important; text-shadow: none; }
+.ovx .bad { color: #f87171 !important; text-shadow: none; }
+.ovx-alert { animation: ovx-blink 1s steps(2, start) infinite; }
+@keyframes ovx-blink { 50% { opacity: .45; } }

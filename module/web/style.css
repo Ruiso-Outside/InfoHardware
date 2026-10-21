@@ -71,13 +71,22 @@ tr.grp td .i { color: var(--p-text-3); margin-right: 6px; }
 .ov-preview .scene { position: absolute; inset: 0; background-image: linear-gradient(rgba(255, 255, 255, .04) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .04) 1px, transparent 1px);
   background-size: 22px 22px; }
 .ov-preview .tag { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font-size: 11.5px; color: var(--p-text-3); }
-.ov-box { position: absolute; padding: 7px 11px; border-radius: 10px; background: rgba(11, 10, 18, .82); border: 1px solid rgba(168, 85, 247, .55);
-  box-shadow: 0 0 14px rgba(168, 85, 247, .35); font: 600 12px/1.5 "Segoe UI", sans-serif; color: #ece9ff; white-space: nowrap; transform-origin: var(--origin); }
-.ov-box .r { display: flex; gap: 10px; justify-content: space-between; }
-.ov-box .k { color: #a855f7; }
-.ov-box .k.c { color: #22d3ee; } .ov-box .k.p { color: #ff3cac; } .ov-box .k.g { color: #39ff88; } .ov-box .k.o { color: #ffb020; }
-.ov-box .fps { font-size: 19px; font-weight: 800; color: #22d3ee; }
-.ov-box .dim { color: #9a93c0; font-weight: 500; }
+.ov-pos { position: absolute; }
+.auto-card { display: flex; gap: 16px; align-items: flex-start; padding: 16px 18px; margin-bottom: 16px; border-radius: var(--p-r-l); background: var(--p-surface-1); border: 1px solid var(--p-line); }
+.auto-card.on { border-color: rgba(168, 85, 247, .55); background: radial-gradient(500px 160px at 0% 0%, rgba(168, 85, 247, .16), transparent 70%), var(--p-surface-1); }
+.auto-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; flex: none; background: var(--p-accent-soft); color: var(--p-accent-2); font-size: 20px; }
+.auto-txt { flex: 1; min-width: 0; }
+.auto-txt h4 { margin: 0 0 4px; }
+.auto-txt p { margin: 0; color: var(--p-text-2); font-size: 13px; line-height: 1.55; }
+.badge.warn { color: var(--p-warn); background: var(--p-warn-soft); }
+.opt-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.opt { display: grid; gap: 2px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--p-line-2); background: var(--p-bg-2); color: var(--p-text); text-align: left; cursor: pointer; font: inherit; }
+.opt b { font-size: 13px; } .opt span { font-size: 11.5px; color: var(--p-text-3); }
+.opt:hover { border-color: var(--p-text-3); }
+.opt.on { border-color: var(--p-accent); background: var(--p-accent-soft); }
+.perf-mini { display: grid; gap: 6px; }
+.perf-mini div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 12px; align-items: baseline; font-size: 13px; }
+.perf-mini b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .corner-pick { display: grid; grid-template-columns: repeat(2, 64px); gap: 6px; }
 .corner-pick button { height: 42px; border-radius: 10px; border: 1px solid var(--p-line-2); background: var(--p-bg-2); cursor: pointer; position: relative; }
 .corner-pick button::after { content: ""; position: absolute; width: 14px; height: 9px; border-radius: 3px; background: var(--p-text-3); }

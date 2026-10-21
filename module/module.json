@@ -2,7 +2,7 @@
   "id": "infohardware",
   "name": "InfoHardware",
   "version": "0.0.0",
-  "description": "Informações do hardware, sensores e monitoramento em tempo real com overlay de FPS para jogos.",
+  "description": "Informações do hardware, sensores e monitoramento em tempo real, com overlay de FPS para jogos que liga sozinho e o desempenho de cada partida.",
   "main": "backend.js",
   "ui": "web/index.html",
   "icon": "icons/infohardware.png",
@@ -32,6 +32,25 @@
       "input": {
         "type": "object",
         "properties": {}
+      }
+    },
+    {
+      "name": "game_performance",
+      "title": "Desempenho nos jogos",
+      "readOnly": true,
+      "description": "Desempenho medido em cada partida: FPS médio, 1% low, FPS mínimo, temperatura máxima da CPU e da GPU, uso da CPU e da GPU e o que está limitando o FPS (placa de vídeo, processador ou limite de FPS/V-Sync). Sem argumentos lista os jogos medidos; com game_id (do Piphin Jogos) ou name mostra as partidas de um jogo.",
+      "input": {
+        "type": "object",
+        "properties": {
+          "game_id": {
+            "type": "string",
+            "description": "id do jogo no Piphin Jogos (ex.: steam:730)"
+          },
+          "name": {
+            "type": "string",
+            "description": "nome do jogo"
+          }
+        }
       }
     }
   ]

@@ -5,6 +5,7 @@
 // recusar, roda em modo limitado (GPU, uso, RAM, rede continuam funcionando).
 // O motor só fica ligado enquanto alguém usa: a tela do módulo aberta, o overlay ou uma gravação.
 const fs = require("fs");
+const http = require("http");
 const net = require("net");
 const os = require("os");
 const path = require("path");
@@ -29,8 +30,9 @@ const METRICS = [
 const DEFAULTS = {
   interval: 1000,
   admin: true, // abrir o motor como administrador (temperatura da CPU, discos e FPS)
-  overlay: { enabled: false, position: "top-left", opacity: 0.85, scale: 1,
-    show: { fps: true, frameTime: true, cpu: true, gpu: true, ram: true, vram: true, power: true, clocks: false, clock: false } },
+  // auto: aparece sozinho quando o Piphin Jogos avisa que um jogo abriu (o motor fica ligado em segundo plano)
+  overlay: { enabled: false, auto: false, position: "top-left", opacity: 0.85, scale: 1, style: "panel", theme: "neon", graph: true, colors: true,
+    show: { game: true, fps: true, frameTime: true, cpu: true, gpu: true, ram: true, vram: true, power: true, clocks: false, clock: false } },
   hotkeys: { overlay: "Ctrl+Shift+O", record: "Ctrl+Shift+R" },
 };
 
@@ -53,7 +55,7 @@ exports.activate = (ctx) => {
   let toolBusy = 0; // ferramentas da IA usando o motor
 
   const setEngine = (patch) => { engine = { ...engine, ...patch }; ctx.emit("engine", engine); };
-  const needed = () => viewVisible || settings.overlay.enabled || !!rec || bench.running || toolBusy > 0;
+  const needed = () => viewVisible || settings.overlay.enabled || settings.overlay.auto || !!rec || bench.running || toolBusy > 0;
 
   // ---------------------------------------------------------------- teste de desempenho (benchmark)
   const BENCH_FILE = path.join(ctx.dataDir, "bench-history.json");
@@ -185,7 +187,8 @@ exports.activate = (ctx) => {
     } else if (m.t === "snap") {
       lastSnap = m;
       ctx.emit("snap", m);
-      if (settings.overlay.enabled) ctx.host.sendToWindow("overlay", "snap", m).catch(() => {});
+      if (overlayShown) ctx.host.sendToWindow("overlay", "snap", m).catch(() => {});
+      if (playing.length) perf.feed(m, playing);
       if (rec) recordRow(m);
       if (bench.running) bench.samples.push({ phase: bench.phase, temp: m.hw.cpuTemp, clock: m.hw.cpuClock });
     } else if (m.t === "bench") {
@@ -296,11 +299,14 @@ exports.activate = (ctx) => {
   }
 
   // ---------------------------------------------------------------- overlay de jogo
-  let overlayOpen = false;
+  let overlayOpen = false, overlayShown = false;
+  let autoHidden = null; // id do jogo em que a pessoa escondeu o overlay automático pelo atalho
+  const overlayVisible = () => settings.overlay.enabled || (settings.overlay.auto && playing.length > 0 && autoHidden !== playing[0].game_id);
   async function applyOverlay() {
     const o = settings.overlay;
-    if (o.enabled) {
-      await ensureEngine().catch(() => {});
+    if (o.auto || o.enabled) ensureEngine().catch(() => {});
+    if (overlayVisible()) {
+      overlayShown = true;
       if (!overlayOpen) {
         await ctx.host.openWindow("overlay", { file: "web/overlay.html", width: 230, height: 160, frame: false, transparent: true, resizable: false,
           alwaysOnTop: true, topLevel: "screen-saver", skipTaskbar: true, focusable: false, hasShadow: false, clickThrough: true,
@@ -309,20 +315,66 @@ exports.activate = (ctx) => {
       }
       await ctx.host.setWindowOpacity("overlay", o.opacity);
       ctx.host.sendToWindow("overlay", "config", o).catch(() => {});
+      ctx.host.sendToWindow("overlay", "game", playing[0] || null).catch(() => {});
       if (lastSnap) ctx.host.sendToWindow("overlay", "snap", lastSnap).catch(() => {});
       await ctx.host.showWindow("overlay", { placement: o.position, focus: false });
-    } else if (overlayOpen) {
-      await ctx.host.hideWindow("overlay");
+    } else {
+      overlayShown = false;
+      if (overlayOpen) await ctx.host.hideWindow("overlay");
       scheduleIdleStop();
     }
     updateKeepAlive();
   }
   // overlay ligado ou gravação em andamento: fechar a janela do Hub só o esconde
-  const updateKeepAlive = () => ctx.host.keepAlive(settings.overlay.enabled || !!rec,
-    settings.overlay.enabled ? "overlay do InfoHardware" : "gravação do InfoHardware").catch(() => {});
+  const updateKeepAlive = () => ctx.host.keepAlive(settings.overlay.enabled || settings.overlay.auto || !!rec,
+    settings.overlay.enabled || settings.overlay.auto ? "overlay do InfoHardware" : "gravação do InfoHardware").catch(() => {});
+
+  // ---------------------------------------------------------------- jogos abertos (Piphin Jogos) e desempenho por jogo
+  // O Piphin Jogos sabe quando um jogo de qualquer loja está aberto; perguntamos a ele pelo servidor de ferramentas do Hub.
+  const perf = require("./perf").createPerf(path.join(ctx.dataDir, "desempenho-jogos.json"));
+  let playing = [], jogos = "unknown"; // "ok" | "missing" (módulo não instalado) | "nohub" | "unknown"
+  function callTool(name, args = {}) {
+    const u = process.env.PIPHIN_TOOLS_URL;
+    if (!u) return Promise.reject(Object.assign(new Error("Hub antigo"), { code: "NOHUB" }));
+    const body = JSON.stringify({ jsonrpc: "2.0", id: Date.now(), method: "tools/call", params: { name, arguments: args } }), url = new URL(u);
+    return new Promise((resolve, reject) => {
+      const req = http.request({ host: url.hostname, port: url.port, path: url.pathname, method: "POST", timeout: 15000, headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) } }, (res) => {
+        let t = ""; res.setEncoding("utf8"); res.on("data", (d) => (t += d));
+        res.on("end", () => {
+          try {
+            const j = JSON.parse(t), text = j.error ? j.error.message : j.result.content[0].text;
+            if (j.error || j.result.isError) return reject(Object.assign(new Error(text), { code: /desconhecida/i.test(text) ? "MISSING" : "TOOL" }));
+            resolve(JSON.parse(text));
+          } catch (e) { reject(e); }
+        });
+      });
+      req.on("timeout", () => req.destroy(new Error("sem resposta")));
+      req.on("error", reject); req.end(body);
+    });
+  }
+  async function pollPlaying() {
+    let next = playing;
+    try { next = (await callTool("jogos_now_playing")).playing || []; if (jogos !== "ok") { jogos = "ok"; ctx.emit("jogos", jogos); } }
+    catch (e) { const st = e.code === "MISSING" ? "missing" : e.code === "NOHUB" ? "nohub" : jogos; if (st !== jogos) { jogos = st; ctx.emit("jogos", jogos); } if (st !== "ok") next = []; }
+    const before = playing.map((x) => x.game_id).join(), after = next.map((x) => x.game_id).join();
+    playing = next;
+    if (before !== after) {
+      if (!playing.length) { const done = perf.finish(); if (done) ctx.emit("perf-session", done); autoHidden = null; }
+      ctx.emit("playing", playing);
+      await applyOverlay().catch((e) => ctx.log("overlay", e));
+    } else if (overlayShown) ctx.host.sendToWindow("overlay", "game", playing[0] || null).catch(() => {});
+  }
+  // a cada 5 s com o motor ligado ou o overlay automático; senão a cada 30 s (só para a tela saber se o Jogos existe)
+  let pollT = null;
+  const loopPlaying = async () => { await pollPlaying().catch(() => {}); pollT = setTimeout(loopPlaying, eng || settings.overlay.auto ? 5000 : 30000); };
+  setTimeout(loopPlaying, 3000);
 
   // ---------------------------------------------------------------- atalhos
-  const toggleOverlay = async () => { settings.overlay.enabled = !settings.overlay.enabled; save(); await applyOverlay(); ctx.emit("settings", settings); };
+  const toggleOverlay = async () => {
+    // overlay automático aparecendo: o atalho só esconde neste jogo
+    if (!settings.overlay.enabled && settings.overlay.auto && playing.length) { autoHidden = autoHidden === playing[0].game_id ? null : playing[0].game_id; return applyOverlay(); }
+    settings.overlay.enabled = !settings.overlay.enabled; save(); await applyOverlay(); ctx.emit("settings", settings);
+  };
   const toggleRecording = () => (rec ? stopRecording() : startRecording());
   async function bindHotkeys() {
     const ok = [];
@@ -337,7 +389,7 @@ exports.activate = (ctx) => {
   ctx.host.on("hotkey", (acc) => { const fn = hotkeyActions[acc]; if (fn) Promise.resolve(fn()).catch((e) => ctx.log("atalho", e)); });
 
   // ---------------------------------------------------------------- chamadas da interface
-  ctx.handle("state", () => ({ engine, structure, snap: lastSnap, info, settings, recording: rec ? { on: true, since: rec.since, file: rec.file } : { on: false },
+  ctx.handle("state", () => ({ engine, structure, snap: lastSnap, info, settings, recording: rec ? { on: true, since: rec.since, file: rec.file } : { on: false }, jogos, playing, perfGames: perf.all(),
     metrics: METRICS.map(([k, n]) => [k, n]), sessionsDir: SESSIONS_DIR, version: ctx.version }));
   ctx.handle("start", () => ensureEngine());
   ctx.handle("elevate", async () => { uacDeclined = false; await stopEngine(); return ensureEngine({ forceAdmin: true }); });
@@ -348,12 +400,16 @@ exports.activate = (ctx) => {
     settings.interval = Math.max(250, Math.min(5000, Number(settings.interval) || 1000));
     settings.overlay.opacity = Math.max(0.2, Math.min(1, Number(settings.overlay.opacity) || 0.85));
     settings.overlay.scale = Math.max(0.6, Math.min(2, Number(settings.overlay.scale) || 1));
+    if (!["panel", "compact", "fps"].includes(settings.overlay.style)) settings.overlay.style = "panel";
+    if (!["neon", "dark", "glass"].includes(settings.overlay.theme)) settings.overlay.theme = "neon";
     save();
     send({ cmd: "interval", ms: settings.interval });
-    if (patch && patch.overlay) await applyOverlay();
+    if (patch && patch.overlay) { await applyOverlay(); updateKeepAlive(); if ("auto" in patch.overlay) pollPlaying().catch(() => {}); }
     ctx.emit("settings", settings);
     return settings;
   });
+  // a janela do overlay acabou de abrir: manda o que ela precisa sem esperar a próxima leitura
+  ctx.handle("overlay-ready", () => ({ config: settings.overlay, game: playing[0] || null, snap: lastSnap }));
   ctx.handle("overlay-size", async (w, h) => {
     await ctx.host.setWindowBounds("overlay", { width: Math.ceil(w), height: Math.ceil(h) });
     if (settings.overlay.enabled) await ctx.host.showWindow("overlay", { placement: settings.overlay.position, focus: false });
@@ -500,6 +556,13 @@ exports.activate = (ctx) => {
       sensor_limits: limits, system_report: report.length > max ? report.slice(0, max) + "\n... (relatório cortado; peça full=true para o completo)" : report || "(ainda lendo as informações)",
       last_benchmark: benchForAi(bench.last) || (bench.history[0] ? { ...bench.history[0], note: "resumo; rode run_benchmark para dicas detalhadas" } : "nenhum teste feito ainda") };
   }));
+  ctx.handle("perf-games", () => perf.all());
+  ctx.handle("perf-game", (id) => perf.game(id));
+  ctx.handle("tool:game_performance", (a = {}) => {
+    if (!a.game_id && !a.name) return { games: perf.all(), note: "Passe game_id ou name para ver as partidas de um jogo. Só são medidas as partidas com o motor ligado (overlay ligado ou automático)." };
+    const r = perf.game(a.game_id, a.name);
+    return { ...r, units: "FPS; temperaturas em °C; uso em %; GPU em W", how: "Medido pelo InfoHardware durante as partidas (o Piphin Jogos avisa quando o jogo abre)." };
+  });
   ctx.handle("tool:run_benchmark", () => withEngine(async () => {
     await startBench();
     ctx.host.notify("InfoHardware", "A IA iniciou o teste de desempenho (cerca de 15 segundos)").catch(() => {});
@@ -526,7 +589,10 @@ exports.activate = (ctx) => {
   // ---------------------------------------------------------------- início
   bindHotkeys().catch((e) => ctx.log("atalhos", e));
   if (settings.overlay.enabled) applyOverlay().catch((e) => ctx.log("overlay", e));
+  if (settings.overlay.auto) { ensureEngine().catch(() => {}); updateKeepAlive(); }
   ctx.onStop(async () => {
+    clearTimeout(pollT);
+    perf.finish();
     if (rec) stopRecording();
     await stopEngine();
     await new Promise((r) => setTimeout(r, 500)); // o PowerShell do motor solta os arquivos ao sair
