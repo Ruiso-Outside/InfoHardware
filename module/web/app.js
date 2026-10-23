@@ -437,7 +437,7 @@ piphin.on("bench", (b) => {
   B = { ...B, ...b };
   if (b.error) toast(b.error, "err");
   if (tab === "bench") { if (B.running && was && $(".bench-hero.running")) renderBenchRunning(); else render(); }
-  else if (was && !B.running && B.last && !b.error) toast("Teste concluído: " + fmt(B.last.overall) + " pontos (" + B.last.tier.name + ")", "ok");
+  else if (was && !B.running && B.last && !b.error) toast(`Teste concluído: ${fmt(B.last.overall)} pontos (${B.last.tier.name})`, "ok");
 });
 call("bench-state").then((b) => { B = { ...B, ...b }; if (tab === "bench") render(); }).catch(() => {});
 call("state").then((st) => {

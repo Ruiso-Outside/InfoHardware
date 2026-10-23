@@ -28,6 +28,9 @@ $manifest.version = $version
 $manifest | ConvertTo-Json -Depth 30 | Set-Content -Encoding UTF8 "$stage\module.json"
 Copy-Item "$root\module\*.js", "$root\module\*.ps1" $stage
 Copy-Item "$root\module\web" "$stage\web" -Recurse
+# traduções (o Hub aplica na tela e nos avisos); source.jsonl e config.json ficam de fora
+New-Item -ItemType Directory -Force "$stage\i18n" | Out-Null
+Copy-Item "$root\i18n\*.json" "$stage\i18n" -Exclude config.json
 Copy-Item "$root\src\InfoHardware\Assets\logo.png" "$stage\icons\infohardware.png"
 
 $zip = Join-Path $dist "piphin-module-infohardware-$version.zip"
