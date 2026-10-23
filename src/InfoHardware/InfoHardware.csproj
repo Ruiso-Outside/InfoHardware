@@ -11,7 +11,7 @@
     <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Product>InfoHardware</Product>
     <Company>InfoHardware</Company>
-    <Version>1.5.0</Version>
+    <Version>1.5.1</Version>
     <SatelliteResourceLanguages>en;pt-BR</SatelliteResourceLanguages>
     <!-- Release exige administrador (sensores de CPU e FPS via ETW); Debug roda sem elevação para facilitar testes. -->
     <ApplicationManifest Condition="'$(Configuration)' == 'Release'">app.manifest</ApplicationManifest>

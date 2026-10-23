@@ -192,14 +192,55 @@ function renderDash() {
 }
 function drawCharts() { $$("canvas.chart").forEach((c) => drawChart(c, c.dataset.keys.split(","))); }
 
+// Aba Hardware: os rótulos vêm do serviço em C# (SystemInfoService.cs). Só os textos fixos dele passam pela tradução;
+// nomes de peças, drivers, redes e outros dados do Windows ficam como vêm (o tradutor não mexe em palavras soltas deles).
+const HW_TEXT = new Set(["Sistema", "Windows", "Edição", "Versão", "Build", "Arquitetura", "Instalado em", "Último boot", "Tempo ligado", "Computador",
+  "Nome", "Usuário", "Fabricante", "Modelo", "Tipo", "Desktop", "Notebook", "Workstation", "Servidor", "Domínio / Grupo", ".NET Runtime",
+  "Processador", "Núcleos", "Threads", "Clock base", "Soquete", "Família / Modelo", "Cache L1", "Cache L2", "Cache L3", "Virtualização", "Ativada",
+  "Desativada", "ID do processador", "Instruções", "Suportadas", "Placa-mãe", "Placa", "Revisão", "Número de série", "BIOS / UEFI", "Data",
+  "Modo de firmware", "Legacy (BIOS)", "Secure Boot", "Ativado", "Desativado", "Segurança", "TPM", "Memória", "Resumo", "Total instalado",
+  "Velocidade configurada", "Módulos", "Slots", "Capacidade máxima", "Single channel", "Dual channel (provável)", "Canais", "Capacidade",
+  "Part number", "Velocidade nominal", "Velocidade atual", "Formato", "Tensão", "Placa de vídeo", "Memória de vídeo", "Processador de vídeo",
+  "Driver", "Data do driver", "Resolução atual", "Taxa de atualização", "Status", "Monitores", "Tamanho", "Ano de fabricação", "Resolução",
+  "Profundidade de cor", "Principal", "Sim", "Não", "1 monitor", "Armazenamento", "Saudável", "Atenção", "Não saudável", "Saúde", "Rotação",
+  "Firmware", "Volumes", "Rede", "Adaptador", "Ethernet (cabo)", "Wi-Fi", "Conectado", "Desconectado", "Velocidade do link", "Endereço MAC",
+  "Gateway", "Áudio", "Dispositivos", "Bateria", "Carga", "Descarregando", "Na tomada", "Carregada", "Carregando", "Química", "Chumbo-ácido"]);
+// textos montados no C# com número: viram frases inteiras aqui
+function hwPhrase(t) {
+  let m;
+  if ((m = /^(\d+) conexão\(ões\) ativa\(s\)$/.exec(t))) return m[1] === "1" ? "1 conexão ativa" : `${m[1]} conexões ativas`;
+  if ((m = /^(\d+) dispositivo\(s\)$/.exec(t))) return m[1] === "1" ? "1 dispositivo" : `${m[1]} dispositivos`;
+  if ((m = /^(\d+) disco\(s\) · (.+)$/.exec(t))) return m[1] === "1" ? `1 disco · ${m[2]}` : `${m[1]} discos · ${m[2]}`;
+  if ((m = /^(\d+) monitores$/.exec(t))) return `${m[1]} monitores`;
+  if ((m = /^Monitor (\d+)$/.exec(t))) return `Monitor ${m[1]}`;
+  if ((m = /^Versão (.+)$/.exec(t))) return `Versão ${m[1]}`;
+  return null;
+}
+// datas do C# (dd/MM/yyyy [HH:mm]) no formato do idioma escolhido
+function hwDate(t) {
+  const m = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?$/.exec(t);
+  if (!m) return null;
+  const d = new Date(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0));
+  return m[4] ? d.toLocaleString(PT, { dateStyle: "short", timeStyle: "short" }) : d.toLocaleDateString(PT);
+}
+// texto da aba Hardware: fixo (traduz) ou dado do Windows (não traduz)
+function hwHtml(t) {
+  t = String(t ?? "");
+  if (HW_TEXT.has(t)) return esc(t);
+  const p = hwPhrase(t);
+  if (p) return esc(p);
+  const d = hwDate(t);
+  return `<span data-noi18n>${esc(d || t)}</span>`;
+}
+
 function renderHardware() {
   if (!S.info) { $("#content").innerHTML = `<div class="p-empty"><span class="spin" style="width:28px;height:28px"></span><h3>Lendo as informações do hardware...</h3></div>`; call("info").then((i) => { if (i) { S.info = i; render(); } }).catch(() => {}); return; }
   const sm = S.info.summary;
   $("#content").innerHTML = `<div>${head(esc(sm.computer || "Hardware"), esc([sm.cpu, sm.gpu, sm.ram].filter(Boolean).join(" · ")),
     `<button class="btn" data-act="report"><i class="i i-file-text"></i>Exportar relatório</button>`)}` +
-    S.info.sections.map((sec) => `<div class="card hw-sec"><div class="head"><span class="glyph">${esc(sec.glyph || "")}</span><div><h3>${esc(sec.title)}</h3>
-      ${sec.subtitle ? `<div class="sub">${esc(sec.subtitle)}</div>` : ""}</div></div>
-      ${sec.groups.map((g) => `<div class="hw-group">${g.header ? `<h4>${esc(g.header)}</h4>` : ""}<dl class="kv">${g.items.map((it) => `<dt>${esc(it.label)}</dt><dd>${esc(it.value)}</dd>`).join("")}</dl></div>`).join("")}</div>`).join("") + `</div>`;
+    S.info.sections.map((sec) => `<div class="card hw-sec"><div class="head"><span class="glyph">${esc(sec.glyph || "")}</span><div><h3>${hwHtml(sec.title)}</h3>
+      ${sec.subtitle ? `<div class="sub">${hwHtml(sec.subtitle)}</div>` : ""}</div></div>
+      ${sec.groups.map((g) => `<div class="hw-group">${g.header ? `<h4>${hwHtml(g.header)}</h4>` : ""}<dl class="kv">${g.items.map((it) => `<dt>${hwHtml(it.label)}</dt><dd>${hwHtml(it.value)}</dd>`).join("")}</dl></div>`).join("")}</div>`).join("") + `</div>`;
 }
 
 function renderSensors() {
@@ -213,12 +254,12 @@ function renderSensors() {
   for (const g of S.structure) {
     const list = g.sensors.filter((s) => (!sensorType || s.type === sensorType) && (!q || norm(g.name + " " + s.name + " " + (SENSOR_TYPES[s.type] || [s.type])[0]).includes(q)));
     if (!list.length) continue;
-    rows.push(`<tr class="grp"><td colspan="5"><i class="i i-${HW_ICONS[g.type] || "microchip"}"></i>${esc(g.name)}</td></tr>`);
+    rows.push(`<tr class="grp"><td colspan="5"><i class="i i-${HW_ICONS[g.type] || "microchip"}"></i><span data-noi18n>${esc(g.name)}</span></td></tr>`);
     for (const s of list) {
       shown++;
       const t = SENSOR_TYPES[s.type] || [s.type, C.gray];
       const v = S.snap.sensors[s.id] || [];
-      rows.push(`<tr data-id="${esc(s.id)}"><td>${esc(s.name)}</td><td><span class="tpill" style="--c:${t[1]}">${esc(t[0])}</span></td>
+      rows.push(`<tr data-id="${esc(s.id)}"><td data-noi18n>${esc(s.name)}</td><td><span class="tpill" style="--c:${t[1]}">${esc(t[0])}</span></td>
         <td class="num v">${sensorFmt(s.type, v[0])}</td><td class="num mn faint">${sensorFmt(s.type, v[1])}</td><td class="num mx faint">${sensorFmt(s.type, v[2])}</td></tr>`);
     }
   }
