@@ -1,3 +1,5 @@
+// Linux: sensores do kernel, sem administrador nem PawnIO; FPS pelo MangoHud
+const LINUX = /Linux/.test(navigator.userAgent);
 // InfoHardware dentro do Piphin Hub: Painel, Hardware, Sensores, Desempenho, Overlay e Ajustes.
 // Os dados vêm do motor de sensores pelo módulo (window.piphin); o visual vem do kit do Hub (piphin://ui).
 const $ = (s, el = document) => el.querySelector(s);
@@ -167,10 +169,10 @@ function renderDash() {
           ${gauge(vramPct, 100, C.pink, "VRAM", "%")}${gauge(h.gpuPower, 450, C.green, "Consumo", "W", fmt(h.gpuPower, 1))}</div></div>
     </div>
     <div class="row3">
-      <div class="card"><div class="card-title"><span><i class="i i-gamepad-2"></i> FPS</span>${S.engine.fps ? `<span class="badge ok">ao vivo</span>` : `<span class="badge off">precisa de administrador</span>`}</div>
+      <div class="card"><div class="card-title"><span><i class="i i-gamepad-2"></i> FPS</span>${S.engine.fps ? `<span class="badge ok">ao vivo</span>` : (LINUX ? `<span class="badge off">use o MangoHud</span>` : `<span class="badge off">precisa de administrador</span>`)}</div>
         <div class="fps-big ${hasFps ? "" : "off"}">${hasFps ? fmt(f.fps) : "--"}</div>
         <div class="fps-meta"><span>Frametime <b>${f && isNum(f.frameTime) ? fmt(f.frameTime, 1) + " ms" : "--"}</b></span><span>1% low <b>${f && isNum(f.low1) ? fmt(f.low1) : "--"}</b></span></div>
-        <div class="fps-game"><i class="i i-app-window"></i>${esc((f && f.process) || (S.engine.fps ? "Nenhum jogo detectado" : "Ative o modo completo para medir o FPS"))}</div></div>
+        <div class="fps-game"><i class="i i-app-window"></i>${esc((f && f.process) || (S.engine.fps ? "Nenhum jogo detectado" : LINUX ? "No Linux, o FPS aparece pelo MangoHud (mangohud %command% na Steam)" : "Ative o modo completo para medir o FPS"))}</div></div>
       <div class="card"><div class="card-title"><span><i class="i i-memory-stick"></i> Memória</span><span class="num faint">${fmt(h.ramLoad)}%</span></div><div class="kv2">
         <span>RAM</span><b>${fmt(h.ramUsedGb, 1)} / ${fmt(ramTotal, 1)} GB</b>
         <span>VRAM</span><b>${isNum(h.vramUsedMb) ? fmt(h.vramUsedMb / 1024, 1) : "--"} / ${isNum(h.vramTotalMb) ? fmt(h.vramTotalMb / 1024, 1) : "--"} GB</b>
@@ -392,11 +394,11 @@ function renderSettings() {
     <div class="p-settings">
       ${row("timer", "Intervalo de atualização", "De quanto em quanto tempo os sensores são lidos.",
         `<select id="sInt">${[250, 500, 1000, 2000, 3000, 5000].map((ms) => `<option value="${ms}" ${st.interval === ms ? "selected" : ""}>${ms < 1000 ? ms + " ms" : ms / 1000 + " s"}</option>`).join("")}</select>`)}
-      ${row("shield-check", "Abrir o motor como administrador", "Necessário para temperatura da CPU, discos e FPS. O Windows pede permissão ao abrir o InfoHardware.",
+      ${LINUX ? "" : row("shield-check", "Abrir o motor como administrador", "Necessário para temperatura da CPU, discos e FPS. O Windows pede permissão ao abrir o InfoHardware.",
         `<label class="switch"><input type="checkbox" id="sAdm" ${st.admin ? "checked" : ""}><span></span></label>`)}
       ${row("activity", "Motor de sensores", e.status === "running" ? (e.admin ? "Rodando com todos os sensores." : "Rodando em modo limitado.") : e.status === "starting" ? "Iniciando..." : e.status === "error" ? esc(e.error) : "Desligado. Liga sozinho quando você abre o InfoHardware, o overlay ou uma gravação.",
         `${e.status === "running" && !e.admin ? `<button class="btn primary" data-act="elevate"><i class="i i-shield-check"></i>Modo completo</button>` : ""}<button class="btn" data-act="restart"><i class="i i-rotate-ccw"></i>Reiniciar</button>`)}
-      ${row("microchip", "Driver PawnIO", e.pawnIoState === "ok" ? "Instalado e carregado." : e.pawnIoState === "broken"
+      ${LINUX ? "" : row("microchip", "Driver PawnIO", e.pawnIoState === "ok" ? "Instalado e carregado." : e.pawnIoState === "broken"
         ? "Instalado, mas o driver não carregou no Windows: sem temperatura e consumo da CPU. Reparar reinstala o driver."
         : "Não instalado: sem temperatura e consumo da CPU, ventoinhas e tensões da placa-mãe.",
         e.pawnIoState === "ok" ? `<span class="badge ok"><i class="i i-check"></i>funcionando</span>`

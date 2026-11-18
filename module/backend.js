@@ -13,7 +13,17 @@ const crypto = require("crypto");
 const { spawn } = require("child_process");
 
 const IDLE_STOP_MS = 30000; // desliga o motor 30 s depois de ninguém mais precisar
-const SESSIONS_DIR = path.join(os.homedir(), "Documents", "InfoHardware", "Sessoes");
+const IS_WIN = process.platform === "win32";
+// Linux: a pasta Documentos do usuário (no Zorin/Ubuntu em português é "Documentos")
+function documentsDir() {
+  if (IS_WIN) return path.join(os.homedir(), "Documents");
+  try {
+    const m = /^XDG_DOCUMENTS_DIR="?([^"\n]+)"?/m.exec(fs.readFileSync(path.join(os.homedir(), ".config", "user-dirs.dirs"), "utf8"));
+    if (m) return m[1].replace(/^\$HOME/, os.homedir());
+  } catch { /* sem o arquivo */ }
+  return path.join(os.homedir(), "Documents");
+}
+const SESSIONS_DIR = path.join(documentsDir(), "InfoHardware", "Sessoes");
 
 // métricas gravadas nas sessões (mesmas do app)
 const METRICS = [
@@ -114,6 +124,13 @@ exports.activate = (ctx) => {
     if (starting) return starting;
     starting = (async () => {
       setEngine({ status: "starting", error: "" });
+      if (!IS_WIN) { // Linux: motor em JS aqui mesmo (engine-linux.js), sem processo nem administrador
+        const sock = require("./engine-linux").open();
+        eng = { proc: null, sock, buf: "" };
+        attach(sock);
+        starting = null;
+        return;
+      }
       const port = await freePort();
       const token = crypto.randomBytes(16).toString("hex");
       const ps1 = path.join(ENGINE_DIR, "start.ps1");
@@ -133,6 +150,15 @@ exports.activate = (ctx) => {
       }
       const sock = await connect(port, token, 45000);
       eng = { proc, sock, buf: "" };
+      attach(sock);
+      starting = null;
+    })();
+    try { await starting; } catch (e) { starting = null; throw e; }
+  }
+
+  // mensagens do motor (socket do motor .NET ou o motor do Linux)
+  function attach(sock) {
+    {
       sock.setEncoding("utf8");
       sock.on("data", (d) => {
         eng.buf += d;
@@ -153,9 +179,7 @@ exports.activate = (ctx) => {
         if (wasRunning && !stopping && needed()) setTimeout(() => ensureEngine().catch(() => {}), 2000);
       });
       send({ cmd: "interval", ms: settings.interval });
-      starting = null;
-    })();
-    try { await starting; } catch (e) { starting = null; throw e; }
+    }
   }
 
   function connect(port, token, timeoutMs) {
