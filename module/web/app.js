@@ -21,7 +21,7 @@ const rate = (b) => (isNum(b) ? bytes(b) + "/s" : "--");
 const mhz = (v) => (!isNum(v) ? "--" : v >= 1000 ? fmt(v / 1000, 2) + " GHz" : fmt(v) + " MHz");
 const norm = (s) => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-const C = { purple: "#a855f7", pink: "#ff3cac", cyan: "#22d3ee", green: "#39ff88", orange: "#ffb020", red: "#ff4d6d", blue: "#5b8cff", yellow: "#f7e26b", gray: "#a495cc" };
+const C = { purple: "#ff0000", pink: "#ff3cac", cyan: "#22d3ee", green: "#39ff88", orange: "#ffb020", red: "#ff4d6d", blue: "#5b8cff", yellow: "#f7e26b", gray: "#a495cc" };
 const SENSOR_TYPES = {
   Temperature: ["Temperatura", C.pink, (v) => fmt(v, 1) + " °C"], Load: ["Uso", C.purple, (v) => fmt(v, 1) + " %"],
   Clock: ["Clock", C.cyan, mhz], Power: ["Potência", C.orange, (v) => fmt(v, 1) + " W"], Fan: ["Ventoinha", C.green, (v) => fmt(v) + " RPM"],
@@ -334,19 +334,19 @@ function fitPreview() {
 }
 function jogosCard(o) {
   const j = S.jogos, playing = S.playing || [];
-  const status = j === "ok" ? (playing.length ? `<span class="badge ok"><i class="i i-gamepad-2"></i>Jogando: ${esc(playing[0].name)}</span>` : `<span class="badge"><i class="i i-circle-check"></i>Piphin Jogos conectado</span>`)
-    : j === "missing" ? `<span class="badge warn"><i class="i i-info"></i>Instale o Piphin Jogos na Loja do Hub</span>`
-    : j === "nohub" ? `<span class="badge warn"><i class="i i-info"></i>Precisa do Piphin Hub 1.5.0</span>` : `<span class="badge"><span class="spin" style="width:12px;height:12px"></span>Procurando o Piphin Jogos</span>`;
+  const status = j === "ok" ? (playing.length ? `<span class="badge ok"><i class="i i-gamepad-2"></i>Jogando: ${esc(playing[0].name)}</span>` : `<span class="badge"><i class="i i-circle-check"></i>Arasaka Arcade conectado</span>`)
+    : j === "missing" ? `<span class="badge warn"><i class="i i-info"></i>Instale o Arasaka Arcade na Loja da Central</span>`
+    : j === "nohub" ? `<span class="badge warn"><i class="i i-info"></i>Precisa da Arasaka Central 1.5.0</span>` : `<span class="badge"><span class="spin" style="width:12px;height:12px"></span>Procurando o Arasaka Arcade</span>`;
   return `<div class="auto-card ${o.auto ? "on" : ""}">
     <div class="auto-ic"><i class="i i-zap"></i></div>
     <div class="auto-txt"><h4>Ligar sozinho quando um jogo abrir</h4>
-      <p>O Piphin Jogos avisa quando você abre um jogo de qualquer loja: o overlay aparece, some quando o jogo fecha e o desempenho da partida fica guardado (e aparece na página do jogo no Piphin Jogos). O motor de sensores fica ligado em segundo plano; o Windows pede permissão de administrador uma vez quando o Hub abre.</p>
+      <p>O Arasaka Arcade avisa quando você abre um jogo de qualquer loja: o overlay aparece, some quando o jogo fecha e o desempenho da partida fica guardado (e aparece na página do jogo no Arasaka Arcade). O motor de sensores fica ligado em segundo plano; o Windows pede permissão de administrador uma vez quando a Central abre.</p>
       <div class="row" style="gap:8px;margin-top:8px">${status}</div></div>
     <label class="switch"><input type="checkbox" id="oAuto" ${o.auto ? "checked" : ""} ${j === "ok" || o.auto ? "" : "disabled"}><span></span></label></div>`;
 }
 function perfList() {
   const g = (S.perfGames || []).slice().sort((x, y) => String(y.last).localeCompare(String(x.last)));
-  if (!g.length) return `<p class="faint" style="font-size:12.5px">Nenhuma partida medida ainda. Com o overlay ligado (ou automático), cada partida de um jogo do Piphin Jogos fica registrada aqui.</p>`;
+  if (!g.length) return `<p class="faint" style="font-size:12.5px">Nenhuma partida medida ainda. Com o overlay ligado (ou automático), cada partida de um jogo do Arasaka Arcade fica registrada aqui.</p>`;
   return `<div class="perf-mini">${g.map((x) => `<div><b>${esc(x.name)}</b><span>${isNum(x.fps_avg) ? fmt(x.fps_avg) + " FPS em média" : "--"}</span><span class="faint">${x.sessions} ${x.sessions === 1 ? "partida" : "partidas"} · ${x.last ? new Date(x.last).toLocaleDateString(PT) : ""}</span></div>`).join("")}</div>`;
 }
 function renderOverlay() {
@@ -390,13 +390,13 @@ function renderOverlay() {
 function renderSettings() {
   const st = S.settings, e = S.engine;
   const row = (icon, title, text, ctrl) => `<div class="set"><div class="row" style="gap:14px;align-items:flex-start"><i class="i i-${icon}" style="font-size:20px;color:var(--p-text-2);margin-top:2px"></i><div><h4>${title}</h4><p>${text}</p></div></div><div class="row">${ctrl}</div></div>`;
-  $("#content").innerHTML = `<div>${head("Ajustes", `InfoHardware ${esc(S.version || "")} · módulo do Piphin Hub`)}
+  $("#content").innerHTML = `<div>${head("Ajustes", `Arasaka Biomonitor ${esc(S.version || "")} · módulo da Arasaka Central`)}
     <div class="p-settings">
       ${row("timer", "Intervalo de atualização", "De quanto em quanto tempo os sensores são lidos.",
         `<select id="sInt">${[250, 500, 1000, 2000, 3000, 5000].map((ms) => `<option value="${ms}" ${st.interval === ms ? "selected" : ""}>${ms < 1000 ? ms + " ms" : ms / 1000 + " s"}</option>`).join("")}</select>`)}
       ${LINUX ? "" : row("shield-check", "Abrir o motor como administrador", "Necessário para temperatura da CPU, discos e FPS. O Windows pede permissão ao abrir o InfoHardware.",
         `<label class="switch"><input type="checkbox" id="sAdm" ${st.admin ? "checked" : ""}><span></span></label>`)}
-      ${row("activity", "Motor de sensores", e.status === "running" ? (e.admin ? "Rodando com todos os sensores." : "Rodando em modo limitado.") : e.status === "starting" ? "Iniciando..." : e.status === "error" ? esc(e.error) : "Desligado. Liga sozinho quando você abre o InfoHardware, o overlay ou uma gravação.",
+      ${row("activity", "Motor de sensores", e.status === "running" ? (e.admin ? "Rodando com todos os sensores." : "Rodando em modo limitado.") : e.status === "starting" ? "Iniciando..." : e.status === "error" ? esc(e.error) : "Desligado. Liga sozinho quando você abre o Arasaka Biomonitor, o overlay ou uma gravação.",
         `${e.status === "running" && !e.admin ? `<button class="btn primary" data-act="elevate"><i class="i i-shield-check"></i>Modo completo</button>` : ""}<button class="btn" data-act="restart"><i class="i i-rotate-ccw"></i>Reiniciar</button>`)}
       ${LINUX ? "" : row("microchip", "Driver PawnIO", e.pawnIoState === "ok" ? "Instalado e carregado." : e.pawnIoState === "broken"
         ? "Instalado, mas o driver não carregou no Windows: sem temperatura e consumo da CPU. Reparar reinstala o driver."

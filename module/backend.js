@@ -334,7 +334,7 @@ exports.activate = (ctx) => {
       if (!overlayOpen) {
         await ctx.host.openWindow("overlay", { file: "web/overlay.html", width: 230, height: 160, frame: false, transparent: true, resizable: false,
           alwaysOnTop: true, topLevel: "screen-saver", skipTaskbar: true, focusable: false, hasShadow: false, clickThrough: true,
-          fullscreenable: false, maximizable: false, minimizable: false, title: "Overlay InfoHardware" });
+          fullscreenable: false, maximizable: false, minimizable: false, title: "Overlay Arasaka Biomonitor" });
         overlayOpen = true;
       }
       await ctx.host.setWindowOpacity("overlay", o.opacity);
@@ -351,7 +351,7 @@ exports.activate = (ctx) => {
   }
   // overlay ligado ou gravação em andamento: fechar a janela do Hub só o esconde
   const updateKeepAlive = () => ctx.host.keepAlive(settings.overlay.enabled || settings.overlay.auto || !!rec,
-    settings.overlay.enabled || settings.overlay.auto ? "overlay do InfoHardware" : "gravação do InfoHardware").catch(() => {});
+    settings.overlay.enabled || settings.overlay.auto ? "overlay do Arasaka Biomonitor" : "gravação do Arasaka Biomonitor").catch(() => {});
 
   // ---------------------------------------------------------------- jogos abertos (Piphin Jogos) e desempenho por jogo
   // O Piphin Jogos sabe quando um jogo de qualquer loja está aberto; perguntamos a ele pelo servidor de ferramentas do Hub.
@@ -500,7 +500,7 @@ exports.activate = (ctx) => {
       message: repair ? "Reparar o driver PawnIO?" : "Instalar o driver PawnIO?",
       detail: (repair ? "Os arquivos do PawnIO estão no PC, mas o driver não está carregado, então a temperatura e o consumo da CPU não aparecem.\n\n"
         : "O PawnIO é o driver que permite ler a temperatura e o consumo da CPU, as ventoinhas e as tensões da placa-mãe.\n\n") +
-        "O InfoHardware baixa o instalador oficial (pawnio.eu), confere a assinatura e faz tudo sozinho: remove a instalação quebrada, instala e confere o driver." +
+        "O Arasaka Biomonitor baixa o instalador oficial (pawnio.eu), confere a assinatura e faz tudo sozinho: remove a instalação quebrada, instala e confere o driver." +
         (engine.admin ? "" : "\n\nO Windows vai pedir permissão de administrador uma vez."),
       buttons: [repair ? "Reparar" : "Instalar", "Cancelar"], defaultId: 0, cancelId: 1 });
     if (r !== 0) return false;
@@ -572,7 +572,7 @@ exports.activate = (ctx) => {
     const live = {};
     for (const [k, v] of Object.entries(hw)) if (typeof v === "number" && isFinite(v)) live[k] = r1(v); else if (typeof v === "string" && v) live[k] = v;
     const limits = [];
-    if (engine.pawnIoState && engine.pawnIoState !== "ok") limits.push("Sem o driver PawnIO: temperatura e consumo da CPU não aparecem (o usuário pode usar 'Reparar PawnIO' no InfoHardware).");
+    if (engine.pawnIoState && engine.pawnIoState !== "ok") limits.push("Sem o driver PawnIO: temperatura e consumo da CPU não aparecem (o usuário pode usar 'Reparar PawnIO' no Arasaka Biomonitor).");
     if (!engine.admin) limits.push("Motor sem administrador: alguns sensores podem faltar.");
     const report = info ? String(info.report || "") : "";
     const max = a.full ? 30000 : 9000;
@@ -585,11 +585,11 @@ exports.activate = (ctx) => {
   ctx.handle("tool:game_performance", (a = {}) => {
     if (!a.game_id && !a.name) return { games: perf.all(), note: "Passe game_id ou name para ver as partidas de um jogo. Só são medidas as partidas com o motor ligado (overlay ligado ou automático)." };
     const r = perf.game(a.game_id, a.name);
-    return { ...r, units: "FPS; temperaturas em °C; uso em %; GPU em W", how: "Medido pelo InfoHardware durante as partidas (o Piphin Jogos avisa quando o jogo abre)." };
+    return { ...r, units: "FPS; temperaturas em °C; uso em %; GPU em W", how: "Medido pelo Arasaka Biomonitor durante as partidas (o Arasaka Arcade avisa quando o jogo abre)." };
   });
   ctx.handle("tool:run_benchmark", () => withEngine(async () => {
     await startBench();
-    ctx.host.notify("InfoHardware", "A IA iniciou o teste de desempenho (cerca de 15 segundos)").catch(() => {});
+    ctx.host.notify("Arasaka Biomonitor", "A IA iniciou o teste de desempenho (cerca de 15 segundos)").catch(() => {});
     const done = await until(() => !bench.running, 120000);
     if (!done) throw new Error("O teste de desempenho não terminou a tempo");
     if (!bench.last || Date.now() - Date.parse(bench.last.at) > 120000) throw new Error("O teste de desempenho foi cancelado ou falhou");

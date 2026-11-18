@@ -42,7 +42,7 @@
       if (sh.ram) parts.push(`<span><i>RAM</i> ${n(h.ramUsedGb, 1)}G</span>`);
       if (sh.power && (isNum(h.cpuPower) || isNum(h.gpuPower))) parts.push(`<span><i>W</i> ${n((h.cpuPower || 0) + (h.gpuPower || 0))}</span>`);
       if (sh.clock) parts.push(`<span>${new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</span>`);
-      return root(parts.join(`<em class="ovx-sep"></em>`) || "InfoHardware");
+      return root(parts.join(`<em class="ovx-sep"></em>`) || "Arasaka Biomonitor");
     }
 
     const rows = [];
@@ -58,7 +58,7 @@
     if (sh.power && (isNum(h.cpuPower) || isNum(h.gpuPower))) rows.push(row("W", `${n(h.cpuPower)} <span class="ovx-dim">CPU</span> ${n(h.gpuPower)} <span class="ovx-dim">GPU</span>`));
     if (sh.clocks) rows.push(row("MHz", `${mhz(h.cpuClock)} <span class="ovx-dim">/</span> ${mhz(h.gpuClock)}`));
     if (sh.clock) rows.push(row("⏱", new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })));
-    return root(rows.join("") || `<span class="ovx-dim">InfoHardware</span>`);
+    return root(rows.join("") || `<span class="ovx-dim">Arasaka Biomonitor</span>`);
   }
   window.OverlayRender = { html };
 })();

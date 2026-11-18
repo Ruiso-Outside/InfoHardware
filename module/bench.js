@@ -84,7 +84,7 @@ function tips({ facts = {}, telemetry = {}, powerPlan = null, engine = {} }) {
     text: "Sob carga pesada o clock caiu, o que normalmente indica calor ou limite de energia.",
     how: "Melhore a ventilação do gabinete e limpe o cooler. Em notebooks, use na tomada e numa superfície dura." });
   if (telemetry.maxTemp == null && engine.pawnIoState && engine.pawnIoState !== "ok") out.push({ impact: "baixo", icon: "info", title: "Não deu para medir a temperatura do processador",
-    text: "Sem o driver PawnIO funcionando, o InfoHardware não consegue ver se o processador está esquentando demais durante o teste.",
+    text: "Sem o driver PawnIO funcionando, o Arasaka Biomonitor não consegue ver se o processador está esquentando demais durante o teste.",
     how: "Use o botão \"Reparar PawnIO\" no topo da tela e rode o teste de novo.", action: { id: "pawnio", label: "Reparar PawnIO" } });
 
   if ((facts.startupApps || 0) > 12) out.push({ impact: "baixo", icon: "rocket", title: `${facts.startupApps} programas abrem junto com o Windows`,

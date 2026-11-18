@@ -27,7 +27,7 @@ fs.cpSync(path.join(root, "module", "web"), path.join(stage, "web"), { recursive
 if (both) fs.cpSync(winEngine, path.join(stage, "engine"), { recursive: true });
 fs.mkdirSync(path.join(stage, "i18n"), { recursive: true });
 for (const f of fs.readdirSync(path.join(root, "i18n"))) if (f.endsWith(".json") && f !== "config.json") fs.copyFileSync(path.join(root, "i18n", f), path.join(stage, "i18n", f));
-fs.copyFileSync(path.join(root, "src", "InfoHardware", "Assets", "logo.png"), path.join(stage, "icons", "infohardware.png"));
+fs.copyFileSync(path.join(root, "module", "icon.png"), path.join(stage, "icons", "infohardware.png"));
 
 fs.rmSync(out, { force: true });
 if (process.platform === "win32") execFileSync(path.join(process.env.SystemRoot || "C:\\Windows", "System32", "tar.exe"), ["-a", "-c", "-f", out, "-C", stage, "."], { stdio: "inherit" });

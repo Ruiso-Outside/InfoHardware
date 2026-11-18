@@ -31,7 +31,7 @@ Copy-Item "$root\module\web" "$stage\web" -Recurse
 # traduções (o Hub aplica na tela e nos avisos); source.jsonl e config.json ficam de fora
 New-Item -ItemType Directory -Force "$stage\i18n" | Out-Null
 Copy-Item "$root\i18n\*.json" "$stage\i18n" -Exclude config.json
-Copy-Item "$root\src\InfoHardware\Assets\logo.png" "$stage\icons\infohardware.png"
+Copy-Item "$root\module\icon.png" "$stage\icons\infohardware.png"
 
 $zip = Join-Path $dist "piphin-module-infohardware-$version.zip"
 Remove-Item $zip -Force -ErrorAction SilentlyContinue

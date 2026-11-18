@@ -1,19 +1,19 @@
 {
   "id": "infohardware",
-  "name": "InfoHardware",
+  "name": "Arasaka Biomonitor",
   "version": "0.0.0",
   "description": "Informações do hardware, sensores e monitoramento em tempo real, com overlay de FPS para jogos que liga sozinho e o desempenho de cada partida.",
   "main": "backend.js",
   "ui": "web/index.html",
   "icon": "icons/infohardware.png",
-  "accent": "#a855f7",
+  "accent": "#ff0000",
   "minHub": "1.4.0",
   "tools": [
     {
       "name": "hardware_report",
       "title": "Ler o hardware",
       "readOnly": true,
-      "description": "Lê o hardware do PC pelo InfoHardware: processador, placa-mãe, memória RAM (pentes e velocidade), placa de vídeo, discos, Windows, sensores ao vivo (temperatura, uso, clock, consumo) e o último teste de desempenho. Use para analisar o PC, achar gargalos ou responder dúvidas sobre o hardware.",
+      "description": "Lê o hardware do PC pelo Arasaka Biomonitor: processador, placa-mãe, memória RAM (pentes e velocidade), placa de vídeo, discos, Windows, sensores ao vivo (temperatura, uso, clock, consumo) e o último teste de desempenho. Use para analisar o PC, achar gargalos ou responder dúvidas sobre o hardware.",
       "input": {
         "type": "object",
         "properties": {
@@ -28,7 +28,7 @@
       "name": "run_benchmark",
       "title": "Rodar teste de desempenho",
       "readOnly": true,
-      "description": "Roda o teste de desempenho do InfoHardware (cerca de 15 segundos, usa 100% do processador) e devolve as notas de um núcleo, todos os núcleos e memória (1000 = PC médio para jogos), para o que o PC serve e o que dá para melhorar. Só rode se o usuário pedir um teste ou uma avaliação de desempenho.",
+      "description": "Roda o teste de desempenho do Arasaka Biomonitor (cerca de 15 segundos, usa 100% do processador) e devolve as notas de um núcleo, todos os núcleos e memória (1000 = PC médio para jogos), para o que o PC serve e o que dá para melhorar. Só rode se o usuário pedir um teste ou uma avaliação de desempenho.",
       "input": {
         "type": "object",
         "properties": {}
@@ -38,13 +38,13 @@
       "name": "game_performance",
       "title": "Desempenho nos jogos",
       "readOnly": true,
-      "description": "Desempenho medido em cada partida: FPS médio, 1% low, FPS mínimo, temperatura máxima da CPU e da GPU, uso da CPU e da GPU e o que está limitando o FPS (placa de vídeo, processador ou limite de FPS/V-Sync). Sem argumentos lista os jogos medidos; com game_id (do Piphin Jogos) ou name mostra as partidas de um jogo.",
+      "description": "Desempenho medido em cada partida: FPS médio, 1% low, FPS mínimo, temperatura máxima da CPU e da GPU, uso da CPU e da GPU e o que está limitando o FPS (placa de vídeo, processador ou limite de FPS/V-Sync). Sem argumentos lista os jogos medidos; com game_id (do Arasaka Arcade) ou name mostra as partidas de um jogo.",
       "input": {
         "type": "object",
         "properties": {
           "game_id": {
             "type": "string",
-            "description": "id do jogo no Piphin Jogos (ex.: steam:730)"
+            "description": "id do jogo no Arasaka Arcade (ex.: steam:730)"
           },
           "name": {
             "type": "string",
