@@ -113,7 +113,7 @@ const statOf = (k) => {
 const head = (title, sub, actions = "") => `<div class="p-head"><div><h1>${title}</h1>${sub ? `<p>${sub}</p>` : ""}</div><div class="actions">${actions}</div></div>`;
 
 // ------------------------------------------------------------------ telas
-const TABS = { dash: renderDash, bench: () => renderBench(), hw: renderHardware, sensors: renderSensors, perf: renderPerf, overlay: renderOverlay, settings: renderSettings };
+const TABS = { dash: renderDash, bench: () => renderBench(), hw: renderHardware, sensors: renderSensors, gpu: renderGpu, perf: renderPerf, overlay: renderOverlay, settings: renderSettings };
 
 function render(fresh) {
   $$(".p-subnav [data-tab]").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
@@ -285,6 +285,69 @@ function updateSensorValues() {
     $(".v", tr).textContent = sensorFmt(t, v[0]); $(".mn", tr).textContent = sensorFmt(t, v[1]); $(".mx", tr).textContent = sensorFmt(t, v[2]);
   });
 }
+
+// ------------------------------------------------------------------ tarefas da GPU
+// Quais programas estão usando a placa de vídeo: uso, memória de vídeo e motor (ver gpuprocs.js no motor).
+let G = null, gpuFilter = "", gpuSort = "vram", gpuTimer = null, gpuBusy = false;
+const mb = (v) => (isNum(v) ? (v >= 1024 ? fmt(v / 1024, 2) + " GB" : fmt(v) + " MB") : "--");
+const pct0 = (v) => (isNum(v) ? fmt(v) + " %" : "0 %");
+async function gpuPoll() {
+  clearTimeout(gpuTimer);
+  if (tab !== "gpu") return;
+  if (!gpuBusy) {
+    gpuBusy = true;
+    try { G = await call("gpu-procs"); } catch (e) { G = { error: e.message, gpus: [], procs: [] }; }
+    gpuBusy = false;
+    if (tab === "gpu") renderGpuData();
+  }
+  gpuTimer = setTimeout(gpuPoll, 1500);
+}
+function renderGpu() {
+  $("#content").innerHTML = `<div>${head("Tarefas da GPU", "Lendo os programas que usam a placa de vídeo...",
+    `<label class="search"><i class="i i-search"></i><input type="search" id="gFilter" placeholder="Filtrar programas" value="${esc(gpuFilter)}" style="width:220px"></label>`)}
+    <div id="gpuCards" class="gpu-cards"></div><div id="gpuTable">${G ? "" : waiting()}</div></div>`;
+  $("#gFilter").oninput = (e) => { gpuFilter = e.target.value; renderGpuData(); };
+  if (G) renderGpuData();
+  gpuPoll();
+}
+function gpuBar(v, max, color) {
+  const w = isNum(v) && max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0;
+  return `<div class="gbar"><i style="width:${w.toFixed(1)}%;background:${color}"></i></div>`;
+}
+function renderGpuData() {
+  if (!G || !$("#gpuTable")) return;
+  const sub = $(".p-head p");
+  if (G.error) { $("#gpuTable").innerHTML = `<div class="p-empty"><h3>Não deu para ler a GPU</h3><p>${esc(G.error)}</p></div>`; return; }
+  const total = (id) => (G.gpus.find((g) => g.id === id) || G.gpus[0] || {}).vramTotalMb || 0;
+  if (sub) sub.textContent = `${G.procs.length} programa(s) usando ${G.gpus.length > 1 ? `${G.gpus.length} placas` : "a placa de vídeo"} · fonte: ${G.source}`;
+  $("#gpuCards").innerHTML = G.gpus.map((g) => `<div class="card gpu-card"><div class="gname" data-noi18n><i class="i i-monitor"></i>${esc(g.name)}</div>
+    <div class="gstat"><span>Uso</span><b>${pct0(g.load)}</b></div>${gpuBar(g.load, 100, C.purple)}
+    <div class="gstat"><span>Memória de vídeo</span><b>${mb(g.vramUsedMb)} <small>de ${mb(g.vramTotalMb)}</small></b></div>${gpuBar(g.vramUsedMb, g.vramTotalMb, C.cyan)}
+    <div class="gmeta">${isNum(g.temp) ? `<span><i class="i i-thermometer"></i>${fmt(g.temp)} °C</span>` : ""}
+      ${isNum(g.enc) ? `<span>Codificador ${fmt(g.enc)} %</span>` : ""}${isNum(g.dec) ? `<span>Decodificador ${fmt(g.dec)} %</span>` : ""}</div></div>`).join("")
+    || (G.note ? `<div class="p-banner"><i class="i i-info"></i><div>${esc(G.note)}</div></div>` : "");
+  const q = norm(gpuFilter.trim());
+  const list = G.procs.filter((p) => !q || norm(`${p.name} ${p.cmd || ""} ${p.pid} ${p.type}`).includes(q));
+  const key = { vram: (p) => -(p.vramMb || 0), gpu: (p) => -(p.gpuPct || 0), name: (p) => norm(p.name), pid: (p) => p.pid }[gpuSort];
+  list.sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  const th = (k, label, cls = "") => `<th class="${cls} sortable ${gpuSort === k ? "sorted" : ""}" data-gsort="${k}">${label}${gpuSort === k ? ' <i class="i i-chevron-down"></i>' : ""}</th>`;
+  $("#gpuTable").innerHTML = `<table class="table gpu-table"><thead><tr>${th("name", "Programa")}${th("pid", "PID", "num")}<th>Tipo</th>${th("gpu", "GPU", "num")}${th("vram", "VRAM", "num")}<th></th></tr></thead>
+    <tbody>${list.map((p) => `<tr><td><div class="pname" data-noi18n title="${esc(p.cmd || p.exe || "")}">${esc(p.name)}</div><div class="pcmd faint" data-noi18n>${esc(p.role || p.cmd || p.exe || "")}</div></td>
+      <td class="num faint">${p.pid}</td><td><span class="tpill" style="--c:${/comput/.test(p.type) ? C.orange : C.purple}">${esc(p.type)}</span></td>
+      <td class="num"><div class="cellbar">${pct0(p.gpuPct)}${gpuBar(p.gpuPct, 100, C.purple)}</div></td>
+      <td class="num"><div class="cellbar">${mb(p.vramMb)}${gpuBar(p.vramMb, total(p.gpu), C.cyan)}</div></td>
+      <td class="num">${p.session ? `<span class="faint" title="A própria sessão gráfica: encerrar derrubaria tudo">sessão</span>`
+        : p.own === false ? `<span class="faint" title="Processo do sistema ou de outro usuário">sistema</span>`
+        : `<button class="btn sm ghost" data-gkill="${p.pid}" data-gname="${esc(p.name)}" title="Encerrar (Shift+clique: forçar)"><i class="i i-x"></i>Encerrar</button>`}</td></tr>`).join("")
+      || `<tr><td colspan="6" class="faint">${G.procs.length ? "Nenhum programa com esse filtro" : "Nenhum programa está usando a GPU agora"}</td></tr>`}</tbody></table>
+    <p class="faint gpu-foot">Atualiza a cada 1,5 s. GPU = uso dos núcleos da placa por este programa; memória de vídeo = VRAM reservada por ele.${G.source.includes("nvidia") ? " Programas parados aparecem com 0 %." : ""}</p>`;
+}
+document.addEventListener("click", (e) => {
+  const s = e.target.closest("[data-gsort]");
+  if (s) { gpuSort = s.dataset.gsort; renderGpuData(); return; }
+  const k = e.target.closest("[data-gkill]");
+  if (k) call("gpu-kill", Number(k.dataset.gkill), k.dataset.gname, e.shiftKey).then((ok) => { if (ok) { toast(`${k.dataset.gname} encerrado`, "ok"); setTimeout(gpuPoll, 600); } }).catch((er) => toast(er.message, "err"));
+});
 
 let recTimer = null;
 function renderPerf() {

@@ -581,6 +581,17 @@ exports.activate = (ctx) => {
       last_benchmark: benchForAi(bench.last) || (bench.history[0] ? { ...bench.history[0], note: "resumo; rode run_benchmark para dicas detalhadas" } : "nenhum teste feito ainda") };
   }));
   ctx.handle("perf-games", () => perf.all());
+  // gerenciador de tarefas da GPU: o que está usando a placa de vídeo (ver gpuprocs.js)
+  const gpuprocs = require("./gpuprocs");
+  ctx.handle("gpu-procs", () => gpuprocs.snapshot());
+  ctx.handle("gpu-kill", async (pid, name, force) => {
+    const r = await ctx.host.messageBox({ type: "warning", message: `Encerrar ${name || "o processo"} (PID ${pid})?`,
+      detail: force ? "Forçar encerra na hora, sem dar chance de salvar." : "O programa recebe o pedido para fechar e pode salvar antes. Coisas não salvas nele podem se perder.",
+      buttons: [force ? "Forçar encerramento" : "Encerrar", "Cancelar"], defaultId: 1, cancelId: 1 });
+    if (r !== 0) return false;
+    await gpuprocs.kill(pid, !!force);
+    return true;
+  });
   ctx.handle("perf-game", (id) => perf.game(id));
   ctx.handle("tool:game_performance", (a = {}) => {
     if (!a.game_id && !a.name) return { games: perf.all(), note: "Passe game_id ou name para ver as partidas de um jogo. Só são medidas as partidas com o motor ligado (overlay ligado ou automático)." };
