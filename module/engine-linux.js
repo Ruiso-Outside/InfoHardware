@@ -13,7 +13,7 @@ const { execFile } = require("child_process");
 const read = (f) => { try { return fs.readFileSync(f, "utf8").trim(); } catch { return ""; } };
 const num = (f, div = 1) => { const v = Number(read(f)); return read(f) !== "" && isFinite(v) ? v / div : null; };
 const ls = (d) => { try { return fs.readdirSync(d); } catch { return []; } };
-const run = (file, args, timeout = 4000) => new Promise((resolve) => execFile(file, args, { timeout, env: { ...process.env, LC_ALL: "C" } }, (err, out) => resolve(err ? "" : String(out))));
+const run = (file, args, timeout = 4000) => new Promise((resolve) => execFile(file, args, { timeout, env: { ...process.env, LC_ALL: "C.UTF-8" } }, (err, out) => resolve(err ? "" : String(out))));
 
 // ---------------------------------------------------------------- sensores do hwmon
 const HW_TYPE = (name) => (/^(k10temp|coretemp|zenpower|cpu_thermal)$/.test(name) ? "Cpu" : name === "amdgpu" ? "GpuAmd" : name === "nouveau" ? "GpuNvidia"
@@ -115,7 +115,9 @@ function memInfo() {
 
 // ---------------------------------------------------------------- o motor
 class LinuxEngine extends EventEmitter {
-  constructor() { super(); this.writable = true; this.interval = 1000; this.minmax = new Map(); this.timer = null; this.prev = null; this.bench = null; }
+  constructor() { super(); this.writable = true; this.interval = 1000; this.minmax = new Map(); this.timer = null; this.prev = null; this.bench = null;
+    // a leitura pode começar antes do start() terminar (com duas placas de vídeo o lspci demora): começa vazio
+    this.names = {}; this.cards = []; this.chips = []; this.nv = null; }
   setEncoding() { /* compatível com socket */ }
   out(obj) { setImmediate(() => this.emit("data", JSON.stringify(obj) + "\n")); }
   write(line) { for (const l of String(line).split("\n")) if (l.trim()) { try { this.cmd(JSON.parse(l)); } catch (e) { this.out({ t: "error", message: e.message }); } } return true; }
