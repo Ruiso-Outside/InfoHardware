@@ -1,4 +1,6 @@
-# InfoHardware
+# Arasaka Biomonitor
+
+> Antes chamado **InfoHardware**. Os arquivos, pastas e dados continuam com o nome antigo.
 
 App para Windows com informações completas do hardware e monitoramento em tempo real (com overlay para jogos), interface escura com neon roxo.
 
@@ -26,8 +28,8 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 ```
 Diagnóstico de sensores: `InfoHardware.exe --report relatorio.txt`
 
-## Módulo do Piphin Hub
-O InfoHardware também roda **dentro do [Piphin Hub](https://github.com/Ruiso-Outside/Piphin-Hub)** (1.3.0 ou mais novo), como módulo de cerca de 4,5 MB, com as mesmas telas (Painel, Hardware, Sensores, Desempenho, Overlay) e o overlay de jogo.
+## Módulo da Arasaka Central
+O InfoHardware também roda **dentro do [Arasaka Central](https://github.com/Ruiso-Outside/ArasakaCentral)** (1.3.0 ou mais novo), como módulo de cerca de 4,5 MB, com as mesmas telas (Painel, Hardware, Sensores, Desempenho, Overlay) e o overlay de jogo.
 
 - **Motor de sensores** (`src/InfoHardware.Engine`): biblioteca .NET Framework 4.7.2 que reaproveita os serviços do app (`HardwareMonitor`, `FpsMonitor`, `SystemInfoService`) e roda **dentro do PowerShell do Windows** (`start.ps1`). Assim não há `.exe` próprio para o Controle Inteligente de Aplicativos bloquear. Ele conversa com o módulo por uma conexão local (127.0.0.1) protegida por um código e se encerra junto com o módulo.
 - **Administrador**: o motor é aberto com o pedido do Windows (UAC) para ler temperatura da CPU, discos e FPS. Se o pedido for recusado, roda em modo limitado (GPU, uso, RAM, rede) e a tela oferece "Ativar modo completo".
@@ -48,15 +50,15 @@ Aba **Overlay**:
 - Cores de alerta: FPS baixo e temperatura alta mudam de cor, e a temperatura alta pisca.
 - O nome do jogo e o tempo de partida aparecem no topo.
 
-**Ligar sozinho quando um jogo abrir**: o [Piphin Jogos](https://github.com/Ruiso-Outside/Piphin-Jogos) avisa quando um jogo de qualquer loja abre, e o overlay aparece e some sozinho. O `Ctrl+Shift+O` esconde o overlay só naquele jogo. Nesse modo o motor de sensores fica ligado em segundo plano.
+**Ligar sozinho quando um jogo abrir**: o [Arasaka Arcade](https://github.com/Ruiso-Outside/ArasakaArcade) avisa quando um jogo de qualquer loja abre, e o overlay aparece e some sozinho. O `Ctrl+Shift+O` esconde o overlay só naquele jogo. Nesse modo o motor de sensores fica ligado em segundo plano.
 
-**Desempenho por jogo**: com o motor ligado durante a partida, o InfoHardware guarda, para cada jogo do Piphin Jogos (`desempenho-jogos.json`, até 30 partidas por jogo):
+**Desempenho por jogo**: com o motor ligado durante a partida, o InfoHardware guarda, para cada jogo do Arasaka Arcade (`desempenho-jogos.json`, até 30 partidas por jogo):
 - FPS médio, mínimo e 1% low;
 - temperaturas máximas da CPU e da GPU;
 - uso da CPU e da GPU;
 - o que segurou o FPS: placa de vídeo no limite, processador, ou FPS travado por V-Sync ou por um limite.
 
-O Piphin Jogos mostra isso na página do jogo, e a IA lê pela ferramenta `game_performance`.
+O Arasaka Arcade mostra isso na página do jogo, e a IA lê pela ferramenta `game_performance`.
 
 Os dois módulos conversam pelo servidor de ferramentas do Hub (1.5.0 ou mais novo):
 - o InfoHardware pergunta `jogos_now_playing` a cada 5 s;
